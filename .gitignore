@@ -7,4 +7,5 @@ models/checkpoints/
 # models/logs/
 models/final/
 
-src/model/classifier/__pycache__/
+# src/model/classifier/__pycache__/
+*.pyc
