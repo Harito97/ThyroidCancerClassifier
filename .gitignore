@@ -1,0 +1,10 @@
+# data/augmentation/
+# data/processed/
+# data/raw/
+*.jpg
+
+models/checkpoints/
+# models/logs/
+models/final/
+
+src/model/classifier/__pycache__/
