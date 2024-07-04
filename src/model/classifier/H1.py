@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from H0 import H0
+from src.model.classifier.H0 import H0
 
 
 class H1(H0):

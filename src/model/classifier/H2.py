@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from H0 import H0
-from H1 import H1
-
+from src.model.classifier.H0 import H0
+from src.model.classifier.H1 import H1
 
 class H2(H0):
     def __init__(self):

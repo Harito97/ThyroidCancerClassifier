@@ -1,0 +1,314 @@
+import torchvision
+import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
+import torch
+import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
+import json
+from torch.utils.data import DataLoader
+from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import confusion_matrix, classification_report, f1_score, roc_curve, auc
+
+def __load_data(data_version_dir, for_training=True):
+    print("Loading data...")
+    transform = transforms.Compose(
+        [
+            transforms.Resize((256, 256)),
+            transforms.RandomCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                # Đây là các giá trị đã tính trên tập train
+                mean=[0.66741932, 0.59166461, 0.82794493],
+                std=[0.25135074, 0.26329945, 0.11295287],
+            ),
+        ]
+    )
+
+    if not for_training:
+        transform = transforms.Compose(
+            [
+                transforms.Resize((256, 256)),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    # Đây là các giá trị đã tính trên tập train
+                    mean=[0.66741932, 0.59166461, 0.82794493],
+                    std=[0.25135074, 0.26329945, 0.11295287],
+                ),
+            ]
+        )
+        test_dataset = torchvision.datasets.ImageFolder(
+            root=f"{data_version_dir}/test", transform=transform
+        )
+        test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+        return test_loader
+
+    train_dataset = torchvision.datasets.ImageFolder(
+        root=f"{data_version_dir}/train", transform=transform
+    )
+    valid_dataset = torchvision.datasets.ImageFolder(
+        root=f"{data_version_dir}/valid", transform=transform
+    )
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=32, shuffle=False)
+    return train_loader, valid_loader
+
+
+def __prepare_model(model):
+    if model is None:
+        print("No model is provided")
+        return
+    print("Setting up model to device...")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    return model, device
+
+
+def __setup_hyperparameters(
+    model, train_dataset=None, class_weights=[4.6748, 0.8772, 0.6075], device="cpu"
+):
+    # class_weights=[4.6748, 0.8772, 0.6075] là trọng số của mỗi class trong hàm loss
+    # đã tính dựa trên phân phối data tập train
+    print("Setting up loss function and optimizer...")
+    if class_weights is None:
+        if train_dataset is None:
+            print("No class weights as no train dataset is provided")
+            return
+        class_weights = compute_class_weight(
+            class_weight="balanced",
+            classes=np.unique(train_dataset.targets),
+            y=train_dataset.targets,
+        )
+
+    # Convert class weights to a tensor
+    class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)
+    # tensor([4.6748, 0.8772, 0.6075])
+
+    # Move to the correct device
+    class_weights_tensor = class_weights_tensor.to(device)
+
+    # Use the weights in the loss function
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights_tensor)
+    if train_dataset is None:
+        print("Return only criterion with no optimizer")
+        return criterion
+
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    return criterion, optimizer
+
+
+def __train(
+    train_loader=None,
+    valid_loader=None,
+    model=None,
+    device=None,
+    criterion=None,
+    optimizer=None,
+    num_epoch=100,
+    patience=30,
+    model_destination=".",
+    model_name="model",
+):
+    print("Training classification model...")
+    best_loss = float("inf")
+    patience_counter = 0
+
+    # Initialize history
+    history = {
+        "train_loss": [],
+        "train_acc": [],
+        "train_f1": [],
+        "val_loss": [],
+        "val_acc": [],
+        "val_f1": [],
+    }
+
+    for epoch in range(num_epoch):
+        # Đặt mô hình ở chế độ train
+        model.train()
+        running_loss = 0.0
+        train_preds, train_targets = [], []
+        for images, labels in train_loader:
+            # Load vào dữ liệu 1 batch
+            images, labels = images.to(device), labels.to(device)
+
+            # Zero the parameter gradients
+            optimizer.zero_grad()
+            # Forward pass
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            # Backward pass
+            loss.backward()
+            # Optimize
+            optimizer.step()
+
+            # Statistics
+            running_loss += loss.item()
+            _, preds = torch.max(outputs, 1)
+            train_preds.extend(preds.view(-1).cpu().numpy())
+            train_targets.extend(labels.view(-1).cpu().numpy())
+
+        # Calculate metrics sau epoch này trên tập train
+        train_loss = running_loss / len(train_loader)
+        train_acc = np.mean(np.array(train_preds) == np.array(train_targets))
+        train_f1 = f1_score(train_targets, train_preds, average="weighted")
+
+        # Validation loop
+        # Đặt mô hình ở chế độ kiểm thử
+        model.eval()
+        val_running_loss = 0.0
+        val_preds, val_targets = [], []
+        with torch.no_grad():
+            for images, labels in valid_loader:
+                images, labels = images.to(device), labels.to(device)
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                val_running_loss += loss.item()
+                _, preds = torch.max(outputs, 1)
+                val_preds.extend(preds.view(-1).cpu().numpy())
+                val_targets.extend(labels.view(-1).cpu().numpy())
+
+        # Calculate metrics sau epoch này trên tập validation
+        val_loss = val_running_loss / len(valid_loader)
+        val_acc = np.mean(np.array(val_preds) == np.array(val_targets))
+        val_f1 = f1_score(val_targets, val_preds, average="weighted")
+
+        # Update history
+        history["train_loss"].append(train_loss)
+        history["train_acc"].append(train_acc)
+        history["train_f1"].append(train_f1)
+        history["val_loss"].append(val_loss)
+        history["val_acc"].append(val_acc)
+        history["val_f1"].append(val_f1)
+
+        print(
+            f"Epoch {epoch+1}:\n"
+            f"Train Loss: {train_loss:.6f}, Train Acc: {train_acc:.6f}, Train F1: {train_f1:.6f}\n"
+            f"Val Loss: {val_loss:.6f}, Val Acc: {val_acc:.6f}, Val F1: {val_f1:.6f}"
+        )
+
+        # Checkpoint
+        if val_loss < best_loss:
+            best_loss = val_loss
+            torch.save(
+                model.state_dict(), f"{model_destination}/best_{model_name}_model.pt"
+            )
+            print("Saved best model at epoch", epoch + 1)
+            patience_counter = 0
+        else:
+            patience_counter += 1
+
+        # Early stopping
+        if patience_counter >= patience:
+            print("Early stopping")
+            break
+
+    # Save model ở trạng thái cuối cùng
+    torch.save(model.state_dict(), f"{model_destination}/last_{model_name}_model.pt")
+    print("Saved last model")
+
+    # After the training loop and any early stopping logic
+    history_file_path = f"{model_destination}/{model_name}_history.json"
+    with open(history_file_path, "w") as history_file:
+        json.dump(history, history_file)
+    print(f"Training history saved to {history_file_path}")
+    print("Training completed")
+
+
+def fit(
+    model=None,
+    data_version_dir=None,
+    num_epoch: int = 100,
+    model_destination: str = ".",
+    model_name: str = "model",
+    mean=[0.66741932, 0.59166461, 0.82794493],
+    std=[0.25135074, 0.26329945, 0.11295287],
+):
+    # Step 1. Load data and transform data
+    train_loader, valid_loader = __load_data(data_version_dir)
+
+    # Step 2. Prepare model to device
+    model, device = __prepare_model(model)
+
+    # Step 3. Setup hyperparameters: Prepare loss function and optimizer
+    criterion, optimizer = __setup_hyperparameters(model, train_loader.dataset)
+
+    # Step 4. Training loop
+    __train(
+        train_loader=train_loader,
+        valid_loader=valid_loader,
+        model=model,
+        device=device,
+        criterion=criterion,
+        optimizer=optimizer,
+        num_epoch=num_epoch,
+        model_destination=model_destination,
+        model_name=model_name,
+    )
+
+
+def test(
+    model=None, # model structure
+    data_version_dir=None,
+    model_path=None,
+    criterion=None,
+    mean=[0.66741932, 0.59166461, 0.82794493],
+    std=[0.25135074, 0.26329945, 0.11295287],
+):
+    # Load data
+    test_loader = __load_data(data_version_dir, for_training=False)
+
+    # Prepare model
+    model, device = __prepare_model(model)
+
+    # Test loop
+    test_preds, test_targets = [], []
+    total_loss = 0  # Initialize loss accumulator
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)  # Calculate loss
+            total_loss += loss.item()  # Accumulate the loss
+            _, preds = torch.max(outputs, 1)
+            test_preds.extend(preds.view(-1).cpu().numpy())
+            test_targets.extend(labels.view(-1).cpu().numpy())
+
+    # Calculate metrics
+    test_loss = total_loss / len(test_loader)  # Calculate average loss
+    test_acc = np.mean(np.array(test_preds) == np.array(test_targets))
+    test_f1 = f1_score(test_targets, test_preds, average="weighted")
+
+    # Confusion Matrix and Classification Report
+    cm = confusion_matrix(test_targets, test_preds)
+    cr = classification_report(test_targets, test_preds)
+
+    print(f"Test Loss: {test_loss:.6f}, Test Acc: {test_acc:.6f}, Test F1: {test_f1:.6f}")
+    print("Confusion Matrix:\n", cm)
+    print("Classification Report:\n", cr)
+
+    # return test_loss, test_acc, test_f1, cm, cr
+
+
+if __name__ == "__main__":
+    from src.model.classifier.H3 import H3
+
+    model = H3()
+    # fit(
+    #     model=model,
+    #     data_version_dir="data/processed/ver1",
+    #     num_epoch=100,
+    #     model_destination="models",
+    #     model_name="h3",
+    # )
+
+    criterion = __setup_hyperparameters(model)
+    test(
+        model=model,
+        data_version_dir="data/processed/ver1",
+        model_path="models/best_h3_model.pt",
+        criterion=criterion
+    )

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
-from H0 import H0
+from src.model.classifier.H0 import H0
 
 
 class H3(H0):
