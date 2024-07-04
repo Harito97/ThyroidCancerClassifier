@@ -21,7 +21,7 @@ def process_images(class_dirs, output_dir, train_ratio=0.8, valid_ratio=0.1):
         for dataset, images in zip(['train', 'valid', 'test'], [train, valid, test]):
             for i, image_path in enumerate(images, 1):
                 class_type = os.path.basename(class_dir)
-                output_path = os.path.join(output_dir, dataset, f"{class_type}_{i}.jpg")
+                output_path = os.path.join(output_dir, dataset, class_type, f"{class_type}_{i}.jpg")
                 resize_and_save(image_path, output_path)
 
 # Hàm main thực hiện
