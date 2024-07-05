@@ -27,13 +27,14 @@ class H4(H0):
     def forward(self, x):
         # Trích xuất đặc trưng
         x = self.feature_extractor(x)
+        
+        # Flatten the spatial dimensions before passing to ViT
+        x = x.flatten(2).transpose(1, 2)  # Reshape to (batch_size, seq_length, hidden_dim)
+        
         # Lấy token lớp [CLS] làm đại diện đặc trưng cho toàn bộ ảnh
         # Token [CLS] là phần tử đầu tiên trong sequence output của ViT
-        cls_token = x[:, 0]
-        # Đưa qua mạng dense
-        x = F.relu(self.fc1(cls_token))
-        x = self.dropout1(x)
-        x = self.fc2(x)
+        x = x[:, 0]  # Extract the [CLS] token
+        x = self.classifier(x)
         return x
 
     def get_feature_maps(self, x):
