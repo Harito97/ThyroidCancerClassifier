@@ -123,6 +123,7 @@ def __train(
     model_destination: str không được có dấu / ở cuối
     model_name: str không có dấu . trong tên 
     """
+
     if train_loader is None or valid_loader is None:
         print("No data loader is provided")
         return
@@ -132,6 +133,10 @@ def __train(
     if criterion is None or optimizer is None:
         print("No criterion or optimizer is provided")
         return
+    
+    model = model.to(device)
+    criterion = criterion.to(device)
+    # optimizer = optimizer.to(device)
     
     print("Training classification model...")
     best_loss = float("inf")
@@ -290,7 +295,9 @@ def test(
 
     # Prepare model
     print("Preparing model...")
+    
     model, device = __prepare_model(model)
+    model.load_state_dict(torch.load(model_path, map_location=device))
 
     # Test loop
     test_preds, test_targets = [], []
