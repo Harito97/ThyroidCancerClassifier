@@ -8,7 +8,14 @@ import numpy as np
 import json
 from torch.utils.data import DataLoader
 from sklearn.utils.class_weight import compute_class_weight
-from sklearn.metrics import confusion_matrix, classification_report, f1_score, roc_curve, auc
+from sklearn.metrics import (
+    confusion_matrix,
+    classification_report,
+    f1_score,
+    roc_curve,
+    auc,
+)
+
 
 def __load_data(data_version_dir, for_training=True):
     print("Loading data...")
@@ -112,6 +119,20 @@ def __train(
     model_destination=".",
     model_name="model",
 ):
+    """
+    model_destination: str không được có dấu / ở cuối
+    model_name: str không có dấu . trong tên 
+    """
+    if train_loader is None or valid_loader is None:
+        print("No data loader is provided")
+        return
+    if model is None or device is None:
+        print("No model or device is provided")
+        return
+    if criterion is None or optimizer is None:
+        print("No criterion or optimizer is provided")
+        return
+    
     print("Training classification model...")
     best_loss = float("inf")
     patience_counter = 0
@@ -131,7 +152,9 @@ def __train(
         model.train()
         running_loss = 0.0
         train_preds, train_targets = [], []
+        print(f"Epoch {epoch+1}/{num_epoch}:\nStart with batch size: ", end="")
         for images, labels in train_loader:
+            print(images.size(0), end=" ")
             # Load vào dữ liệu 1 batch
             images, labels = images.to(device), labels.to(device)
 
@@ -159,6 +182,7 @@ def __train(
         # Validation loop
         # Đặt mô hình ở chế độ kiểm thử
         model.eval()
+        print(f"Start validation at epoch {epoch + 1} ...")
         val_running_loss = 0.0
         val_preds, val_targets = [], []
         with torch.no_grad():
@@ -185,9 +209,8 @@ def __train(
         history["val_f1"].append(val_f1)
 
         print(
-            f"Epoch {epoch+1}:\n"
             f"Train Loss: {train_loss:.6f}, Train Acc: {train_acc:.6f}, Train F1: {train_f1:.6f}\n"
-            f"Val Loss: {val_loss:.6f}, Val Acc: {val_acc:.6f}, Val F1: {val_f1:.6f}"
+            f"Val   Loss: {val_loss:.6f}, Val   Acc: {val_acc:.6f}, Val   F1: {val_f1:.6f}"
         )
 
         # Checkpoint
@@ -207,6 +230,9 @@ def __train(
             break
 
     # Save model ở trạng thái cuối cùng
+    model_destination = model_destination[:-1] if model_destination[-1] == "/" else model_destination
+    model_name = model_name.split(".")[0]
+
     torch.save(model.state_dict(), f"{model_destination}/last_{model_name}_model.pt")
     print("Saved last model")
 
@@ -251,7 +277,7 @@ def fit(
 
 
 def test(
-    model=None, # model structure
+    model=None,  # model structure
     data_version_dir=None,
     model_path=None,
     criterion=None,
@@ -259,16 +285,20 @@ def test(
     std=[0.25135074, 0.26329945, 0.11295287],
 ):
     # Load data
+    print("Loading test data...")
     test_loader = __load_data(data_version_dir, for_training=False)
 
     # Prepare model
+    print("Preparing model...")
     model, device = __prepare_model(model)
 
     # Test loop
     test_preds, test_targets = [], []
     total_loss = 0  # Initialize loss accumulator
+    print(f"Start test with batch size: ", end="")
     with torch.no_grad():
         for images, labels in test_loader:
+            print(images.size(0), end=" ")
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             loss = criterion(outputs, labels)  # Calculate loss
@@ -286,11 +316,36 @@ def test(
     cm = confusion_matrix(test_targets, test_preds)
     cr = classification_report(test_targets, test_preds)
 
-    print(f"Test Loss: {test_loss:.6f}, Test Acc: {test_acc:.6f}, Test F1: {test_f1:.6f}")
+    print(
+        f"Test Loss: {test_loss:.6f}, Test Acc: {test_acc:.6f}, Test F1: {test_f1:.6f}"
+    )
     print("Confusion Matrix:\n", cm)
     print("Classification Report:\n", cr)
 
-    # return test_loss, test_acc, test_f1, cm, cr
+    # ROC and AUC
+    fpr, tpr, thresholds = roc_curve(test_targets, test_probs)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure()
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.show()
+
+    # Lưu test_preds và test_targets vào file npz
+    np.savez(f"{model_destination}/test_{model_name}_data.npz", test_preds=test_preds, test_targets=test_targets)
+
+    # Để đọc lại file npz
+    # data = np.load("test_data.npz")
+    # test_preds = data['test_preds']
+    # test_targets = data['test_targets']
+
+    return test_preds, test_targets
 
 
 if __name__ == "__main__":
@@ -310,5 +365,5 @@ if __name__ == "__main__":
         model=model,
         data_version_dir="data/processed/ver1",
         model_path="models/best_h3_model.pt",
-        criterion=criterion
+        criterion=criterion,
     )
