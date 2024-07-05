@@ -19,6 +19,8 @@ from sklearn.metrics import (
     roc_curve,
     auc,
 )
+from sklearn.preprocessing import label_binarize
+
 
 
 def __load_data(data_version_dir, for_training=True):
@@ -425,11 +427,12 @@ def test(
     test_probs = np.array(test_probs)
     test_targets = np.array(test_targets)
     n_classes = test_probs.shape[1]
+    test_targets_binarized = label_binarize(test_targets, classes=range(n_classes))
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
     for i in range(n_classes):
-        fpr[i], tpr[i], _ = roc_curve(test_targets[:, i], test_probs[:, i])
+        fpr[i], tpr[i], _ = roc_curve(test_targets_binarized[:, i], test_probs[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
 
     # Save test_preds, test_probs, and test_targets to npz file
