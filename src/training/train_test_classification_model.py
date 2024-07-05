@@ -290,27 +290,35 @@ def fit(
 # Lưu Confusion Matrix
 def __save_confusion_matrix(cm, target_names, filename, normalize=False):
     if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        title = 'Normalized Confusion Matrix'
+        cm = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
+        title = "Normalized Confusion Matrix"
     else:
-        title = 'Confusion Matrix, Without Normalization'
+        title = "Confusion Matrix, Without Normalization"
 
     plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt=".2f" if normalize else "d", cmap='Blues', xticklabels=target_names, yticklabels=target_names)
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt=".2f" if normalize else "d",
+        cmap="Blues",
+        xticklabels=target_names,
+        yticklabels=target_names,
+    )
+    plt.ylabel("True label")
+    plt.xlabel("Predicted label")
     plt.title(title)
     plt.savefig(filename)
     plt.close()
+
 
 # Lưu Classification Report
 def __save_classification_report(cr, filename):
     try:
         report_df = pd.DataFrame(cr).transpose()
-        report_df.drop('support', axis=1, inplace=True)  # Bỏ cột support nếu không cần
-        report_df.plot(kind='bar', figsize=(10, 6))
-        plt.title('Classification Report')
-        plt.ylabel('Score')
+        report_df.drop("support", axis=1, inplace=True)  # Bỏ cột support nếu không cần
+        report_df.plot(kind="bar", figsize=(10, 6))
+        plt.title("Classification Report")
+        plt.ylabel("Score")
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.savefig(filename)
@@ -321,16 +329,39 @@ def __save_classification_report(cr, filename):
 
 # Lưu ROC AUC Plot
 def __save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, filename):
+    """
+    Saves the ROC AUC plot to a file.
+
+    Args:
+        fpr: False positive rates.
+        tpr: True positive rates.
+        roc_auc: ROC AUC scores.
+        n_classes: Number of classes.
+        filename: Path to save the plot.
+    """
     plt.figure(figsize=(8, 6))
+
+    # Vẽ đường ROC cho từng lớp
     for i in range(n_classes):
-        plt.plot(fpr[i], tpr[i], lw=2, label='ROC curve of class {0} (area = {1:0.2f})'.format(i, roc_auc[i]))
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        plt.plot(
+            fpr[i],
+            tpr[i],
+            lw=2,
+            label="ROC curve of class {0} (area = {1:0.2f})".format(i, roc_auc[i]),
+        )
+
+    # Vẽ đường chéo (ngẫu nhiên)
+    plt.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")
+
+    # Thiết lập các thông số của đồ thị
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic')
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Receiver Operating Characteristic (ROC)")
     plt.legend(loc="lower right")
+
+    # Lưu đồ thị vào file
     plt.savefig(filename)
     plt.close()
 
@@ -390,13 +421,16 @@ def test(
     print("Confusion Matrix:\n", cm)
     print("Classification Report:\n", cr)
 
-    # Tính và vẽ ROC, AUC cho mỗi nhãn
+    # Tính ROC, AUC cho mỗi nhãn
     test_probs = np.array(test_probs)
+    test_targets = np.array(test_targets)
     n_classes = test_probs.shape[1]
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
-    
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(test_targets[:, i], test_probs[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
 
     # Save test_preds, test_probs, and test_targets to npz file
     model_name = os.path.basename(model_path).split(".")[0]
@@ -418,11 +452,38 @@ def test(
         fpr=fpr,
         tpr=tpr,
     )
-    print("Saving confusion matrix plot, classification report plot, and ROC AUC plot in {result_destination}")
-    __save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix.png"), normalize=False)
-    __save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix_normalized.png"), normalize=True)
-    __save_classification_report(cr_dict, os.path.join(result_destination, f"test_{model_name}_classification_report.png"))
-    __save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, os.path.join(result_destination, f"test_{model_name}_roc_auc_plot.png"))
+    print(
+        "Saving confusion matrix plot, classification report plot, and ROC AUC plot in {result_destination}"
+    )
+    __save_confusion_matrix(
+        cm,
+        target_names=["B2", "B5", "B6"],
+        filename=os.path.join(
+            result_destination, f"test_{model_name}_confusion_matrix.png"
+        ),
+        normalize=False,
+    )
+    __save_confusion_matrix(
+        cm,
+        target_names=["B2", "B5", "B6"],
+        filename=os.path.join(
+            result_destination, f"test_{model_name}_confusion_matrix_normalized.png"
+        ),
+        normalize=True,
+    )
+    __save_classification_report(
+        cr_dict,
+        os.path.join(
+            result_destination, f"test_{model_name}_classification_report.png"
+        ),
+    )
+    __save_roc_auc_plot(
+        fpr,
+        tpr,
+        roc_auc,
+        n_classes,
+        os.path.join(result_destination, f"test_{model_name}_roc_auc_plot.png"),
+    )
 
 
 if __name__ == "__main__":
