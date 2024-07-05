@@ -9,7 +9,7 @@ class H_ANN(H0):
         # Define the first fully connected layer
         self.fc1 = nn.Linear(3 * 224 * 224, 512)
         # Dropout layer to reduce overfitting
-        self.dropout1 = nn.Dropout(0.5)
+        self.dropout1 = nn.Dropout(0.1)
         # Define the second fully connected layer
         self.fc2 = nn.Linear(512, 3)
     
