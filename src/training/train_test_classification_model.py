@@ -165,7 +165,7 @@ def __train(
         train_preds, train_targets = [], []
         print(f"Epoch {epoch+1}/{num_epoch}:\nStart with batch size: ", end="")
         for images, labels in train_loader:
-            print(images.size(0), end=" ")
+            print(images.size, end=" ")
             # Load vào dữ liệu 1 batch
             images, labels = images.to(device), labels.to(device)
 
