@@ -1,47 +1,51 @@
 import torch
-import torch.nn as nn
-from torchvision.models import vit_b_16  # Sử dụng mô hình Vision Transformer B-16
+from torch import nn
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 from src.model.classifier.H0 import H0
 
 
 class H4(H0):
-    def __init__(self):
+    def __init__(self, img_dim=224, patch_dim=16, num_channels=3, num_classes=3, embed_dim=256, num_heads=8, num_encoder_layers=12, dropout_rate=0.2):
         super(H4, self).__init__()
-        # Tải mô hình Vision Transformer B-16 đã được huấn luyện trước
-        vit = vit_b_16(pretrained=True)
-        # Loại bỏ lớp classification head
-        self.feature_extractor = nn.Sequential(*list(vit.children())[:-1])
-        # Đóng băng các tham số trong feature extractor để không cập nhật trong quá trình huấn luyện
-        for param in self.feature_extractor.parameters():
-            param.requires_grad = False
+        self.img_dim = img_dim
+        self.patch_dim = patch_dim
+        self.num_patches = (img_dim // patch_dim) ** 2
+        self.embed_dim = embed_dim
 
-        # Kích thước đầu vào cho lớp fully connected đầu tiên dựa trên output của ViT-B/16
-        # ViT-B/16 thường trả về tensor [batch_size, num_patches + 1, dim] sau transformer
-        # Lấy dim từ 'dim' của ViT-B/16
-        dim = vit.heads[0].in_features
-        self.fc1 = nn.Linear(dim, 512)
-        self.dropout1 = nn.Dropout(0.5)
-        # Output layer với 3 units cho 3 lớp phân loại
-        self.fc2 = nn.Linear(512, 3)
+        self.patch_size = img_dim // patch_dim
+        self.num_channels = num_channels
+        self.num_classes = num_classes
+
+        self.patch_embedding = nn.Linear(patch_dim * patch_dim * num_channels, embed_dim)
+        encoder_layer = TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads, dropout=dropout_rate)
+        self.transformer_encoder = TransformerEncoder(encoder_layer, num_layers=num_encoder_layers)
+
+        self.classifier = nn.Linear(embed_dim, num_classes)
+
 
     def forward(self, x):
-        # Trích xuất đặc trưng
-        x = self.feature_extractor(x)
-        
-        # Flatten the spatial dimensions before passing to ViT
-        x = x.flatten(2).transpose(1, 2)  # Reshape to (batch_size, seq_length, hidden_dim)
-        
-        # Lấy token lớp [CLS] làm đại diện đặc trưng cho toàn bộ ảnh
-        # Token [CLS] là phần tử đầu tiên trong sequence output của ViT
-        x = x[:, 0]  # Extract the [CLS] token
+        # Reshape input to patches
+        x = x.unfold(2, self.patch_dim, self.patch_dim).unfold(3, self.patch_dim, self.patch_dim)
+        x = x.contiguous().view(x.size(0), x.size(1) * x.size(2) * x.size(3), -1)
+
+        # Embed patches
+        x = self.patch_embedding(x)
+
+        # Transformer Encoder
+        x = self.transformer_encoder(x)
+
+        # Classifier
+        x = x.mean(dim=1)
         x = self.classifier(x)
+
         return x
 
-    def get_feature_maps(self, x):
+
+    def get_all_feature_maps(self, x):
         """
-        Trả về bản đồ đặc trưng cho đầu vào x
+        Trả về toàn bộ bản đồ đặc trưng cho đầu vào x
         :param x: Tensor đầu vào có kích thước (N, C, H, W)
-        :return: Bản đồ đặc trưng
+        :return: Toàn bộ bản đồ đặc trưng
         """
         # Đảm bảo mô hình ở chế độ đánh giá
         self.feature_extractor.eval()
@@ -49,7 +53,11 @@ class H4(H0):
         # Tính toán bản đồ đặc trưng
         with torch.no_grad():
             feature_maps = self.feature_extractor(x)
-            # Lấy token [CLS] làm đặc trưng
-            cls_token = feature_maps[:, 0]
+            # Trả về toàn bộ bản đồ đặc trưng thay vì chỉ lấy token [CLS]
+            # Điều này giúp lấy thông tin đặc trưng đầy đủ hơn
 
-        return (cls_token,)
+        return feature_maps,
+
+
+# Khởi tạo mô hình ViT
+# vit_model = ViT(img_dim=224, patch_dim=16, num_channels=3, num_classes=3, embed_dim=768, num_heads=12, num_encoder_layers=12)
