@@ -8,7 +8,7 @@ from src.model.classifier.H0 import H0
 class H4(H0):
     def __init__(self, num_classes=3):
         super(H4, self).__init__()
-        self.vit = timm.create_model('vit_base_patch16_224', pretrained=True)
+        self.vit = timm.create_model("vit_base_patch16_224", pretrained=True)
 
         # Freeze all layers except the head
         for param in self.vit.parameters():
