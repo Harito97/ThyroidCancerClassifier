@@ -1,11 +1,15 @@
+import os
+import json
+import seaborn as sns
+import pandas as pd
+import numpy as np
+import itertools
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import numpy as np
-import json
 from torch.utils.data import DataLoader
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import (
@@ -121,7 +125,7 @@ def __train(
 ):
     """
     model_destination: str không được có dấu / ở cuối
-    model_name: str không có dấu . trong tên 
+    model_name: str không có dấu . trong tên
     """
 
     if train_loader is None or valid_loader is None:
@@ -133,11 +137,11 @@ def __train(
     if criterion is None or optimizer is None:
         print("No criterion or optimizer is provided")
         return
-    
+
     model = model.to(device)
     criterion = criterion.to(device)
     # optimizer = optimizer.to(device)
-    
+
     print("Training classification model...")
     best_loss = float("inf")
     patience_counter = 0
@@ -187,7 +191,7 @@ def __train(
         # Validation loop
         # Đặt mô hình ở chế độ kiểm thử
         model.eval()
-        print(f"Start validation at epoch {epoch + 1} ...")
+        print(f"\nStart validation at epoch {epoch + 1} ...")
         val_running_loss = 0.0
         val_preds, val_targets = [], []
         with torch.no_grad():
@@ -235,7 +239,9 @@ def __train(
             break
 
     # Save model ở trạng thái cuối cùng
-    model_destination = model_destination[:-1] if model_destination[-1] == "/" else model_destination
+    model_destination = (
+        model_destination[:-1] if model_destination[-1] == "/" else model_destination
+    )
     model_name = model_name.split(".")[0]
 
     torch.save(model.state_dict(), f"{model_destination}/last_{model_name}_model.pt")
@@ -281,41 +287,91 @@ def fit(
     )
 
 
+# Lưu Confusion Matrix
+def __save_confusion_matrix(cm, target_names, filename, normalize=False):
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        title = 'Normalized Confusion Matrix'
+    else:
+        title = 'Confusion Matrix, Without Normalization'
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt=".2f" if normalize else "d", cmap='Blues', xticklabels=target_names, yticklabels=target_names)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.title(title)
+    plt.savefig(filename)
+    plt.close()
+
+# Lưu Classification Report
+def __save_classification_report(cr, filename):
+    report_df = pd.DataFrame(cr).transpose()
+    report_df.drop('support', axis=1, inplace=True)  # Bỏ cột support nếu không cần
+    report_df.plot(kind='bar', figsize=(10, 6))
+    plt.title('Classification Report')
+    plt.ylabel('Score')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
+
+# Lưu ROC AUC Plot
+def __save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, filename):
+    plt.figure(figsize=(8, 6))
+    for i in range(n_classes):
+        plt.plot(fpr[i], tpr[i], lw=2, label='ROC curve of class {0} (area = {1:0.2f})'.format(i, roc_auc[i]))
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.savefig(filename)
+    plt.close()
+
+
 def test(
     model=None,  # model structure
     data_version_dir=None,
     model_path=None,
     criterion=None,
-    mean=[0.66741932, 0.59166461, 0.82794493],
-    std=[0.25135074, 0.26329945, 0.11295287],
+    mean=None,
+    std=None,
 ):
+    if mean is None:
+        mean = [0.66741932, 0.59166461, 0.82794493]
+    if std is None:
+        std = [0.25135074, 0.26329945, 0.11295287]
+
     # Load data
     print("Loading test data...")
     test_loader = __load_data(data_version_dir, for_training=False)
 
     # Prepare model
     print("Preparing model...")
-    
     model, device = __prepare_model(model)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     # Test loop
-    test_preds, test_targets = [], []
-    total_loss = 0  # Initialize loss accumulator
+    test_preds, test_targets, test_probs = [], [], []
+    total_loss = 0
     print(f"Start test with batch size: ", end="")
+    model.eval()  # Chuyển model sang chế độ đánh giá
     with torch.no_grad():
         for images, labels in test_loader:
             print(images.size(0), end=" ")
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
-            loss = criterion(outputs, labels)  # Calculate loss
-            total_loss += loss.item()  # Accumulate the loss
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
             _, preds = torch.max(outputs, 1)
             test_preds.extend(preds.view(-1).cpu().numpy())
             test_targets.extend(labels.view(-1).cpu().numpy())
+            test_probs.extend(outputs.cpu().numpy())  # Lưu giá trị xác suất
 
     # Calculate metrics
-    test_loss = total_loss / len(test_loader)  # Calculate average loss
+    test_loss = total_loss / len(test_loader)
     test_acc = np.mean(np.array(test_preds) == np.array(test_targets))
     test_f1 = f1_score(test_targets, test_preds, average="weighted")
 
@@ -329,30 +385,39 @@ def test(
     print("Confusion Matrix:\n", cm)
     print("Classification Report:\n", cr)
 
-    # ROC and AUC
-    fpr, tpr, thresholds = roc_curve(test_targets, test_probs)
-    roc_auc = auc(fpr, tpr)
+    # Tính và vẽ ROC, AUC cho mỗi nhãn
+    test_probs = np.array(test_probs)
+    n_classes = test_probs.shape[1]
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    
 
-    plt.figure()
-    plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic')
-    plt.legend(loc="lower right")
-    plt.show()
-
-    # Lưu test_preds và test_targets vào file npz
-    np.savez(f"{model_destination}/test_{model_name}_data.npz", test_preds=test_preds, test_targets=test_targets)
-
-    # Để đọc lại file npz
-    # data = np.load("test_data.npz")
-    # test_preds = data['test_preds']
-    # test_targets = data['test_targets']
-
-    return test_preds, test_targets
+    # Save test_preds, test_probs, and test_targets to npz file
+    model_name = os.path.basename(model_path).split(".")[0]
+    result_destination = os.path.dirname(model_path)
+    print(
+        f"Saving test metrics to {os.path.join(result_destination, f'test_{model_name}_metrics.npz')}"
+    )
+    np.savez(
+        os.path.join(result_destination, f"test_{model_name}_metrics.npz"),
+        test_preds=test_preds,
+        test_probs=test_probs,
+        test_targets=test_targets,
+        test_loss=test_loss,
+        test_acc=test_acc,
+        test_f1=test_f1,
+        cm=cm,
+        cr=cr,
+        roc_auc=roc_auc,
+        fpr=fpr,
+        tpr=tpr,
+    )
+    print("Saving confusion matrix plot, classification report plot, and ROC AUC plot in {result_destination}")
+    save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix.png"), normalize=False)
+    save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix_normalized.png"), normalize=True)
+    save_classification_report(cr, os.path.join(result_destination, f"test_{model_name}_classification_report.png"))
+    save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, os.path.join(result_destination, f"test_{model_name}_roc_auc_plot.png"))
 
 
 if __name__ == "__main__":
