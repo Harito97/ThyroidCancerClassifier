@@ -305,15 +305,19 @@ def __save_confusion_matrix(cm, target_names, filename, normalize=False):
 
 # Lưu Classification Report
 def __save_classification_report(cr, filename):
-    report_df = pd.DataFrame(cr).transpose()
-    report_df.drop('support', axis=1, inplace=True)  # Bỏ cột support nếu không cần
-    report_df.plot(kind='bar', figsize=(10, 6))
-    plt.title('Classification Report')
-    plt.ylabel('Score')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.savefig(filename)
-    plt.close()
+    try:
+        report_df = pd.DataFrame(cr).transpose()
+        report_df.drop('support', axis=1, inplace=True)  # Bỏ cột support nếu không cần
+        report_df.plot(kind='bar', figsize=(10, 6))
+        plt.title('Classification Report')
+        plt.ylabel('Score')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
+    except ValueError as e:
+        print(f"Error creating DataFrame from classification report: {e}")
+
 
 # Lưu ROC AUC Plot
 def __save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, filename):
@@ -378,6 +382,7 @@ def test(
     # Confusion Matrix and Classification Report
     cm = confusion_matrix(test_targets, test_preds)
     cr = classification_report(test_targets, test_preds)
+    cr_dict = classification_report(test_targets, test_preds, output_dict=True)
 
     print(
         f"Test Loss: {test_loss:.6f}, Test Acc: {test_acc:.6f}, Test F1: {test_f1:.6f}"
@@ -416,7 +421,7 @@ def test(
     print("Saving confusion matrix plot, classification report plot, and ROC AUC plot in {result_destination}")
     __save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix.png"), normalize=False)
     __save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix_normalized.png"), normalize=True)
-    __save_classification_report(cr, os.path.join(result_destination, f"test_{model_name}_classification_report.png"))
+    __save_classification_report(cr_dict, os.path.join(result_destination, f"test_{model_name}_classification_report.png"))
     __save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, os.path.join(result_destination, f"test_{model_name}_roc_auc_plot.png"))
 
 
