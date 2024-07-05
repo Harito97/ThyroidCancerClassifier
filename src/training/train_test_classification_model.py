@@ -456,7 +456,7 @@ def test(
         tpr=tpr,
     )
     print(
-        "Saving confusion matrix plot, classification report plot, and ROC AUC plot in {result_destination}"
+        f"Saving confusion matrix plot, classification report plot, and ROC AUC plot in {result_destination}"
     )
     __save_confusion_matrix(
         cm,
