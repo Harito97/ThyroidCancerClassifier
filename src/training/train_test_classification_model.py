@@ -414,10 +414,10 @@ def test(
         tpr=tpr,
     )
     print("Saving confusion matrix plot, classification report plot, and ROC AUC plot in {result_destination}")
-    save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix.png"), normalize=False)
-    save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix_normalized.png"), normalize=True)
-    save_classification_report(cr, os.path.join(result_destination, f"test_{model_name}_classification_report.png"))
-    save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, os.path.join(result_destination, f"test_{model_name}_roc_auc_plot.png"))
+    __save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix.png"), normalize=False)
+    __save_confusion_matrix(cm, target_names=['B2', 'B5', 'B6'], filename= os.path.join(result_destination, f"test_{model_name}_confusion_matrix_normalized.png"), normalize=True)
+    __save_classification_report(cr, os.path.join(result_destination, f"test_{model_name}_classification_report.png"))
+    __save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, os.path.join(result_destination, f"test_{model_name}_roc_auc_plot.png"))
 
 
 if __name__ == "__main__":
