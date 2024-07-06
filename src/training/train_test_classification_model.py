@@ -22,7 +22,6 @@ from sklearn.metrics import (
 from sklearn.preprocessing import label_binarize
 
 
-
 def __load_data(data_version_dir, for_training=True):
     print("Loading data...")
     transform = transforms.Compose(
@@ -158,6 +157,12 @@ def __train(
         "val_f1": [],
     }
 
+    model_destination = (
+        model_destination[:-1] if model_destination[-1] == "/" else model_destination
+    )
+    model_name = model_name.split(".")[0]
+    history_file_path = f"{model_destination}/{model_name}_history.json"
+
     for epoch in range(num_epoch):
         # Đặt mô hình ở chế độ train
         model.train()
@@ -165,7 +170,10 @@ def __train(
         train_preds, train_targets = [], []
         print(f"Epoch {epoch+1}/{num_epoch}:\nStart with batch size: ", end="")
         for images, labels in train_loader:
-            print(f'[{images.size(0)}, {images.size(1)}, {images.size(2)}, {images.size(3)}]', end=" ")
+            print(
+                f"[{images.size(0)}, {images.size(1)}, {images.size(2)}, {images.size(3)}]",
+                end=" ",
+            )
             # Load vào dữ liệu 1 batch
             images, labels = images.to(device), labels.to(device)
 
@@ -224,13 +232,24 @@ def __train(
             f"Val   Loss: {val_loss:.6f}, Val   Acc: {val_acc:.6f}, Val   F1: {val_f1:.6f}"
         )
 
+        # Save model ở trạng thái cuối cùng
+        torch.save(
+            model.state_dict(), f"{model_destination}/last_{model_name}_model.pt"
+        )
+        print("Saved last model at epoch", epoch + 1)
+
+        # After the training loop and any early stopping logic
+        with open(history_file_path, "w") as history_file:
+            json.dump(history, history_file)
+        print("Saved last history at epoch", epoch + 1)
+
         # Checkpoint
         if val_loss < best_loss:
             best_loss = val_loss
             torch.save(
                 model.state_dict(), f"{model_destination}/best_{model_name}_model.pt"
             )
-            print("Saved best model at epoch", epoch + 1)
+            print("Saved **best model** at epoch", epoch + 1)
             patience_counter = 0
         else:
             patience_counter += 1
@@ -240,19 +259,6 @@ def __train(
             print("Early stopping")
             break
 
-    # Save model ở trạng thái cuối cùng
-    model_destination = (
-        model_destination[:-1] if model_destination[-1] == "/" else model_destination
-    )
-    model_name = model_name.split(".")[0]
-
-    torch.save(model.state_dict(), f"{model_destination}/last_{model_name}_model.pt")
-    print("Saved last model")
-
-    # After the training loop and any early stopping logic
-    history_file_path = f"{model_destination}/{model_name}_history.json"
-    with open(history_file_path, "w") as history_file:
-        json.dump(history, history_file)
     print(f"Training history saved to {history_file_path}")
     print("Training completed")
 
