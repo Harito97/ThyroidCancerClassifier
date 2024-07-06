@@ -400,6 +400,8 @@ def test(
     test_preds, test_targets, test_probs = [], [], []
     total_loss = 0
     print(f"Start test with batch size: ", end="")
+    model = model.to(device)
+    criterion = criterion.to(device)
     model.eval()  # Chuyển model sang chế độ đánh giá
     with torch.no_grad():
         for images, labels in test_loader:
