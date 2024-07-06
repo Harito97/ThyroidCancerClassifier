@@ -12,6 +12,12 @@ class H7(H0):
         self.vit = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=0)
         self.resnet = timm.create_model("resnet50", pretrained=True, num_classes=0)
 
+        # Đóng băng các tầng trong ViT và ResNet
+        for param in self.vit.parameters():
+            param.requires_grad = False
+        for param in self.resnet.parameters():
+            param.requires_grad = False
+            
         # Kích thước đầu ra của ViT và ResNet
         vit_features = self.vit.num_features
         resnet_features = self.resnet.num_features
