@@ -11,7 +11,7 @@ class H8_0_12(H0):
     Dùng để phân biệt nhãn 0 và nhãn 1 và 2 
     """
     def __init__(self, num_classes=2):
-        super(H5, self).__init__()
+        super(H8_0_12, self).__init__()
         
         # Tải mô hình ResNet50 đã được huấn luyện trước
         resnet50 = models.resnet50(pretrained=True)
