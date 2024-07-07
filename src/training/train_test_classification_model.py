@@ -90,8 +90,24 @@ def __load_data(
             labels_to_remove=labels_to_remove,  # [0],
         )
         valid_loader = DataLoader(h8_valid_dataset, batch_size=32, shuffle=False)
-        return train_loader, valid_loader
+        # Lấy một batch dữ liệu từ train_loader
+        train_data_iter = iter(train_loader)
+        train_images, train_labels = next(train_data_iter)
 
+        # In shape của images và labels trong batch đầu tiên của train_loader
+        print("Shape of train images in the first batch:", train_images.shape)
+        print("Shape of train labels in the first batch:", train_labels.shape)
+
+        # Làm tương tự với valid_loader
+        valid_data_iter = iter(valid_loader)
+        valid_images, valid_labels = next(valid_data_iter)
+
+        # In shape của images và labels trong batch đầu tiên của valid_loader
+        print("Shape of valid images in the first batch:", valid_images.shape)
+        print("Shape of valid labels in the first batch:", valid_labels.shape)        return train_loader, valid_loader
+
+        return train_loader, valid_loader
+        
     if is_test_H8_model:
         transform = transforms.Compose(
             [
@@ -348,7 +364,7 @@ def fit(
     mean=[0.66741932, 0.59166461, 0.82794493],
     std=[0.25135074, 0.26329945, 0.11295287],
     is_train_H8_model=False,
-    if_test_H8_model=False,
+    is_test_H8_model=False,
     labels_to_merge=None,  # {1: [2]},
     labels_to_remove=None,  # [0],
 ):
