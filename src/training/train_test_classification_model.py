@@ -5,12 +5,12 @@ import pandas as pd
 import numpy as np
 import itertools
 import torchvision
-import torchvision.transforms as transforms
+from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import (
     confusion_matrix,
@@ -22,7 +22,44 @@ from sklearn.metrics import (
 from sklearn.preprocessing import label_binarize
 
 
-def __load_data(data_version_dir, for_training=True):
+class H8ModelDataset(Dataset):
+    def __init__(
+        self, root_dir, transform=None, labels_to_merge=None, labels_to_remove=None
+    ):
+        self.dataset = datasets.ImageFolder(root=root_dir, transform=transform)
+        self.labels_to_merge = labels_to_merge or {}
+        self.labels_to_remove = labels_to_remove or []
+        self.adjust_labels()
+
+    def adjust_labels(self):
+        new_samples = []
+        for path, label in self.dataset.samples:
+            # Gộp nhãn
+            for target_label, source_labels in self.labels_to_merge.items():
+                if label in source_labels:
+                    label = target_label
+                    break
+            # Loại bỏ nhãn
+            if label not in self.labels_to_remove:
+                new_samples.append((path, label))
+        self.dataset.samples = new_samples
+        self.dataset.targets = [label for _, label in new_samples]
+
+    def __getitem__(self, index):
+        return self.dataset[index]
+
+    def __len__(self):
+        return len(self.dataset)
+
+
+def __load_data(
+    data_version_dir,
+    for_training=True,
+    is_train_H8_model=False,
+    is_test_H8_model=False,
+    labels_to_merge=None,
+    labels_to_remove=None,
+):
     print("Loading data...")
     transform = transforms.Compose(
         [
@@ -38,6 +75,45 @@ def __load_data(data_version_dir, for_training=True):
         ]
     )
 
+    if is_train_H8_model:
+        h8_train_dataset = H8ModelDataset(
+            root_dir=f"{data_version_dir}/train",
+            transform=transform,
+            labels_to_merge=labels_to_merge,  # {1: [2]},
+            labels_to_remove=labels_to_remove,  # [0],
+        )
+        train_loader = DataLoader(h8_train_dataset, batch_size=32, shuffle=True)
+        h8_valid_dataset = H8ModelDataset(
+            root_dir=f"{data_version_dir}/valid",
+            transform=transform,
+            labels_to_merge=labels_to_merge,  # {1: [2]},
+            labels_to_remove=labels_to_remove,  # [0],
+        )
+        valid_loader = DataLoader(h8_valid_dataset, batch_size=32, shuffle=False)
+        return train_loader, valid_loader
+
+    if is_test_H8_model:
+        transform = transforms.Compose(
+            [
+                transforms.Resize((256, 256)),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    # Đây là các giá trị đã tính trên tập train
+                    mean=[0.66741932, 0.59166461, 0.82794493],
+                    std=[0.25135074, 0.26329945, 0.11295287],
+                ),
+            ]
+        )
+        h8_test_dataset = H8ModelDataset(
+            root_dir=f"{data_version_dir}/test",
+            transform=transform,
+            labels_to_merge=labels_to_merge,  # {1: [2]},
+            labels_to_remove=labels_to_remove,  # [0],
+        )
+        test_loader = DataLoader(h8_test_dataset, batch_size=32, shuffle=False)
+        return test_loader
+
     if not for_training:
         transform = transforms.Compose(
             [
@@ -51,16 +127,16 @@ def __load_data(data_version_dir, for_training=True):
                 ),
             ]
         )
-        test_dataset = torchvision.datasets.ImageFolder(
+        test_dataset = datasets.ImageFolder(
             root=f"{data_version_dir}/test", transform=transform
         )
         test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
         return test_loader
 
-    train_dataset = torchvision.datasets.ImageFolder(
+    train_dataset = datasets.ImageFolder(
         root=f"{data_version_dir}/train", transform=transform
     )
-    valid_dataset = torchvision.datasets.ImageFolder(
+    valid_dataset = datasets.ImageFolder(
         root=f"{data_version_dir}/valid", transform=transform
     )
 
@@ -271,9 +347,19 @@ def fit(
     model_name: str = "model",
     mean=[0.66741932, 0.59166461, 0.82794493],
     std=[0.25135074, 0.26329945, 0.11295287],
+    is_train_H8_model=False,
+    if_test_H8_model=False,
+    labels_to_merge=None,  # {1: [2]},
+    labels_to_remove=None,  # [0],
 ):
     # Step 1. Load data and transform data
-    train_loader, valid_loader = __load_data(data_version_dir)
+    train_loader, valid_loader = __load_data(
+        data_version_dir,
+        is_train_H8_model=is_train_H8_model,
+        # is_test_H8_model=is_test_H8_model,
+        labels_to_merge=labels_to_merge,
+        labels_to_remove=labels_to_remove,
+    )
 
     # Step 2. Prepare model to device
     model, device = __prepare_model(model)
@@ -381,6 +467,9 @@ def test(
     criterion=None,
     mean=None,
     std=None,
+    is_test_H8_model=False,
+    labels_to_merge=None,  # {1: [2]},
+    labels_to_remove=None,  # [0],
 ):
     if mean is None:
         mean = [0.66741932, 0.59166461, 0.82794493]
@@ -389,7 +478,9 @@ def test(
 
     # Load data
     print("Loading test data...")
-    test_loader = __load_data(data_version_dir, for_training=False)
+    test_loader = __load_data(
+        data_version_dir, for_training=False, is_test_H8_model=is_test_H8_model
+    )
 
     # Prepare model
     print("Preparing model...")
