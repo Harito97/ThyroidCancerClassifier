@@ -104,10 +104,10 @@ def __load_data(
 
         # In shape của images và labels trong batch đầu tiên của valid_loader
         print("Shape of valid images in the first batch:", valid_images.shape)
-        print("Shape of valid labels in the first batch:", valid_labels.shape)        return train_loader, valid_loader
+        print("Shape of valid labels in the first batch:", valid_labels.shape)
 
         return train_loader, valid_loader
-        
+
     if is_test_H8_model:
         transform = transforms.Compose(
             [
@@ -172,7 +172,10 @@ def __prepare_model(model):
 
 
 def __setup_hyperparameters(
-    model, train_dataset=None, class_weights=[4.6748, 0.8772, 0.6075], device="cpu"
+    model, 
+    train_dataset=None, 
+    class_weights=None, #[4.6748, 0.8772, 0.6075], 
+    device="cpu"
 ):
     # class_weights=[4.6748, 0.8772, 0.6075] là trọng số của mỗi class trong hàm loss
     # đã tính dựa trên phân phối data tập train
