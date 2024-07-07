@@ -174,6 +174,7 @@ def __prepare_model(model):
 def __setup_hyperparameters(
     model,
     train_dataset=None,
+    test_dataset=None,
     class_weights=None,  # [4.6748, 0.8772, 0.6075],
     device="cpu",
 ):
@@ -181,8 +182,8 @@ def __setup_hyperparameters(
     # đã tính dựa trên phân phối data tập train
     print("Setting up loss function and optimizer...")
     if class_weights is None:
-        if train_dataset is None:
-            print("No class weights as no train dataset is provided")
+        if train_dataset is None and test_dataset is None:
+            print("No class weights as no train dataset (test dataset) is provided")
             return
         # class_weights = compute_class_weight(
         #     class_weight="balanced",
@@ -204,7 +205,7 @@ def __setup_hyperparameters(
 
     # Use the weights in the loss function
     criterion = torch.nn.CrossEntropyLoss(weight=class_weights_tensor)
-    if train_dataset is None:
+    if test_dataset is not None:
         print("Return only criterion with no optimizer")
         return criterion
 
