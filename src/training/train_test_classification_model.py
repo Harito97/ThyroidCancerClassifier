@@ -390,7 +390,7 @@ def fit(
 
     # Step 3. Setup hyperparameters: Prepare loss function and optimizer
     if isinstance(train_loader.dataset, H8ModelDataset):
-        criterion, optimizer = __setup_hyperparameters(model, train_loader.dataset.dataset.targets)
+        criterion, optimizer = __setup_hyperparameters(model, train_loader.dataset.dataset)
     else:
         criterion, optimizer = __setup_hyperparameters(model, train_loader.dataset)
 
