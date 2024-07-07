@@ -172,10 +172,10 @@ def __prepare_model(model):
 
 
 def __setup_hyperparameters(
-    model, 
-    train_dataset=None, 
-    class_weights=None, #[4.6748, 0.8772, 0.6075], 
-    device="cpu"
+    model,
+    train_dataset=None,
+    class_weights=None,  # [4.6748, 0.8772, 0.6075],
+    device="cpu",
 ):
     # class_weights=[4.6748, 0.8772, 0.6075] là trọng số của mỗi class trong hàm loss
     # đã tính dựa trên phân phối data tập train
@@ -184,6 +184,11 @@ def __setup_hyperparameters(
         if train_dataset is None:
             print("No class weights as no train dataset is provided")
             return
+        # class_weights = compute_class_weight(
+        #     class_weight="balanced",
+        #     classes=np.unique(train_dataset.targets),
+        #     y=train_dataset.targets,
+        # )
         class_weights = compute_class_weight(
             class_weight="balanced",
             classes=np.unique(train_dataset.targets),
@@ -384,7 +389,10 @@ def fit(
     model, device = __prepare_model(model)
 
     # Step 3. Setup hyperparameters: Prepare loss function and optimizer
-    criterion, optimizer = __setup_hyperparameters(model, train_loader.dataset)
+    if isinstance(train_loader.dataset, H8ModelDataset):
+        criterion, optimizer = __setup_hyperparameters(model, train_loader.dataset.dataset.targets)
+    else:
+        criterion, optimizer = __setup_hyperparameters(model, train_loader.dataset)
 
     # Step 4. Training loop
     __train(
@@ -498,7 +506,11 @@ def test(
     # Load data
     print("Loading test data...")
     test_loader = __load_data(
-        data_version_dir, for_training=False, is_test_H8_model=is_test_H8_model
+        data_version_dir,
+        for_training=False,
+        is_test_H8_model=is_test_H8_model,
+        labels_to_merge=None,  # {1: [2]},
+        labels_to_remove=None,  # [0],
     )
 
     # Prepare model
