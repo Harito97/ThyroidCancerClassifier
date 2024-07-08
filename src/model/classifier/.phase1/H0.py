@@ -28,30 +28,6 @@ class H0(torch.nn.Module):
         # để trả về bản đồ đặc trưng tương ứng với mô hình đó
         raise NotImplementedError("This method should be implemented by subclasses.")
 
-    def load_data(self, data_path, class_names=None):
-        """
-        Load data from data_path
-        """
-        raise NotImplementedError("This method should be implemented by subclasses.")
-
-    def forward(self, x):
-        """
-        Forward pass
-        """
-        raise NotImplementedError("This method should be implemented by subclasses.")
-
-    def train_model(self, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs=10, device="cpu"):
-        """
-        Train model
-        """
-        raise NotImplementedError("This method should be implemented by subclasses.")
-
-    def test_model(self, test_loader, criterion, device="cpu"):
-        """
-        Test model
-        """
-        raise NotImplementedError("This method should be implemented by subclasses.")
-        
     def visualize_feature_maps(self, input_image, show_last_layer=False):
         feature_maps = self.get_feature_maps(input_image)
         if show_last_layer:
