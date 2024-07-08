@@ -68,11 +68,12 @@ class H9(H0):
         self.num_classes = num_classes
         self.resnet50_feature_extractor = ResNet50FeatureExtractor()
         self.vit = VisionTransformer(input_dim=2048, dim=256, num_classes=num_classes)
-    
+        self.model = nn.Sequential(self.resnet50_feature_extractor, self.vit)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
+
     def forward(self, x):
-        x = self.resnet50_feature_extractor(x)
-        x = self.vit(x)
-        return x
+        return self.model(x)
 
     def get_feature_maps(self, x):
         """
@@ -92,36 +93,22 @@ class H9(H0):
 
         print('Creating dataloader...')
         thyroidCancerDataLoader = ThyroidCancerDataLoader()
-        train_loader = thyroidCancerDataLoader.get_data_loader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
-        print('Train loader size:', len(train_loader))
-        valid_loader = thyroidCancerDataLoader.get_data_loader(valid_dataset, batch_size=32, shuffle=False, num_workers=4)
-        print('Valid loader size:', len(valid_loader))
-        test_loader = thyroidCancerDataLoader.get_data_loader(test_dataset, batch_size=32, shuffle=False, num_workers=4)
-        print('Test loader size:', len(test_loader))
-
-        return train_loader, valid_loader, test_loader
-
-    def __prepare_model(self, model):
-        if model is None:
-            print("No model is provided")
-            return
-        print("Setting up model to device...")
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model.to(device)
-        return model, device
+        self.train_loader = thyroidCancerDataLoader.get_data_loader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
+        print('Train loader size:', len(self.train_loader))
+        self.valid_loader = thyroidCancerDataLoader.get_data_loader(valid_dataset, batch_size=32, shuffle=False, num_workers=4)
+        print('Valid loader size:', len(self.valid_loader))
+        self.test_loader = thyroidCancerDataLoader.get_data_loader(test_dataset, batch_size=32, shuffle=False, num_workers=4)
+        print('Test loader size:', len(self.test_loader))
 
     def __setup_hyperparameters(
         self,
-        model,
         train_dataset=None,
-        test_dataset=None,
         class_weights=None,
-        device="cpu",
     ):
         print("Setting up loss function and optimizer...")
         if class_weights is None:
-            if train_dataset is None and test_dataset is None:
-                print("No class weights as no train dataset (test dataset) is provided")
+            if train_dataset is None:
+                print("No class weights as no train dataset is provided")
                 return
             class_weights = compute_class_weight(
                 class_weight="balanced",
@@ -130,40 +117,29 @@ class H9(H0):
             )
 
         class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)
-        class_weights_tensor = class_weights_tensor.to(device)
-        criterion = torch.nn.CrossEntropyLoss(weight=class_weights_tensor)
-        if test_dataset is not None:
-            print("Return only criterion with no optimizer")
-            return criterion
-
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-        return criterion, optimizer
+        class_weights_tensor = class_weights_tensor.to(self.device)
+        self.criterion = torch.nn.CrossEntropyLoss(weight=class_weights_tensor)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
 
     def __train(
         self,
-        train_loader=None,
-        valid_loader=None,
-        model=None,
-        device=None,
-        criterion=None,
-        optimizer=None,
         num_epoch=100,
         patience=30,
         model_destination=".",
         model_name="model",
     ):
-        if train_loader is None or valid_loader is None:
+        if self.train_loader is None or self.valid_loader is None:
             print("No data loader is provided")
             return
-        if model is None or device is None:
-            print("No model or device is provided")
+        if self.model is None:
+            print("No model is provided")
             return
-        if criterion is None or optimizer is None:
+        if self.criterion is None or self.optimizer is None:
             print("No criterion or optimizer is provided")
             return
 
-        model = model.to(device)
-        criterion = criterion.to(device)
+        self.model = self.model.to(self.device)
+        self.criterion = self.criterion.to(self.device)
 
         print("Training classification model...")
         best_loss = float("inf")
@@ -185,45 +161,45 @@ class H9(H0):
         history_file_path = f"{model_destination}/{model_name}_history.json"
 
         for epoch in range(num_epoch):
-            model.train()
+            self.model.train()
             running_loss = 0.0
-            train_preds, train_targets = [], []
+            train_preds, train_targets = []
             print(f"Epoch {epoch+1}/{num_epoch}:\nStart with batch size: ", end="")
-            for images, labels in train_loader:
+            for images, labels in self.train_loader:
                 print(
                     f"[{images.size(0)}, {images.size(1)}, {images.size(2)}, {images.size(3)}]",
                     end=" ",
                 )
-                images, labels = images.to(device), labels.to(device)
-                optimizer.zero_grad()
-                outputs = model(images)
-                loss = criterion(outputs, labels)
+                images, labels = images.to(self.device), labels.to(self.device)
+                self.optimizer.zero_grad()
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
                 loss.backward()
-                optimizer.step()
+                self.optimizer.step()
                 running_loss += loss.item()
                 _, preds = torch.max(outputs, 1)
                 train_preds.extend(preds.view(-1).cpu().numpy())
                 train_targets.extend(labels.view(-1).cpu().numpy())
 
-            train_loss = running_loss / len(train_loader)
+            train_loss = running_loss / len(self.train_loader)
             train_acc = np.mean(np.array(train_preds) == np.array(train_targets))
             train_f1 = f1_score(train_targets, train_preds, average="weighted")
 
-            model.eval()
+            self.model.eval()
             print(f"\nStart validation at epoch {epoch + 1} ...")
             val_running_loss = 0.0
-            val_preds, val_targets = [], []
+            val_preds, val_targets = []
             with torch.no_grad():
-                for images, labels in valid_loader:
-                    images, labels = images.to(device), labels.to(device)
-                    outputs = model(images)
-                    loss = criterion(outputs, labels)
+                for images, labels in self.valid_loader:
+                    images, labels = images.to(self.device), labels.to(self.device)
+                    outputs = self.model(images)
+                    loss = self.criterion(outputs, labels)
                     val_running_loss += loss.item()
                     _, preds = torch.max(outputs, 1)
                     val_preds.extend(preds.view(-1).cpu().numpy())
                     val_targets.extend(labels.view(-1).cpu().numpy())
 
-            val_loss = val_running_loss / len(valid_loader)
+            val_loss = val_running_loss / len(self.valid_loader)
             val_acc = np.mean(np.array(val_preds) == np.array(val_targets))
             val_f1 = f1_score(val_targets, val_preds, average="weighted")
 
@@ -239,83 +215,71 @@ class H9(H0):
             history["val_loss"].append(val_loss)
             history["val_acc"].append(val_acc)
             history["val_f1"].append(val_f1)
+            with open(history_file_path, "w") as f:
+                json.dump(history, f)
+                print(f"History saved at {history_file_path}")
 
             if val_loss < best_loss:
                 best_loss = val_loss
                 patience_counter = 0
-                torch.save(model.state_dict(), f"{model_destination}/{model_name}.pth")
-                print(f"Model saved at {model_destination}/{model_name}.pth")
+                torch.save(self.model.state_dict(), f"{model_destination}/{model_name}.pth")
+                print(f"Best model saved at {model_destination}/best_{model_name}.pth")
             else:
                 patience_counter += 1
+                torch.save(self.model.state_dict(), f"{model_destination}/{model_name}.pth")
+                print(f"Last model saved at {model_destination}/last_{model_name}.pth")
 
             if patience_counter >= patience:
                 print(f"Early stopping at epoch {epoch + 1}")
                 break
 
-            with open(history_file_path, "w") as f:
-                json.dump(history, f)
 
     def fit(
         self,
-        model=None,
-        train_loader=None,
-        valid_loader=None,
         num_epoch=100,
         patience=30,
         model_destination=".",
         model_name="model",
     ):
-        model, device = self.__prepare_model(model)
-        criterion, optimizer = self.__setup_hyperparameters(model, class_weights=None, device=device)
-        self.__train(
-            train_loader,
-            valid_loader,
-            model,
-            device,
-            criterion,
-            optimizer,
-            num_epoch=num_epoch,
-            patience=patience,
-            model_destination=model_destination,
-            model_name=model_name,
-        )
+        self.__setup_hyperparameters(train_dataset=self.train_loader.dataset)
+        self.__train(num_epoch=num_epoch, patience=patience, model_destination=model_destination, model_name=model_name)
 
     def test(
         self,
-        model=None,
-        test_loader=None,
-        train_dataset=None,
-        num_classes=3,
         model_path=None,
         show_cm=True,
         show_cr=True,
-        show_auc=True,
+        show_auc=False,
     ):
-        if test_loader is None:
+        if self.test_loader is None:
             print("No test loader is provided")
             return
-        model, device = self.__prepare_model(model)
-        criterion = self.__setup_hyperparameters(model, train_dataset, class_weights=None, device=device)
+        if self.model is None:
+            print("No model is provided")
+            return
+        if self.criterion is None:
+            print("No criterion is provided")
+            return
 
         if model_path is not None:
-            model.load_state_dict(torch.load(model_path, map_location=device))
+            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
 
-        model.eval()
+        self.model.eval()
         test_loss = 0.0
         all_preds = []
         all_targets = []
 
         with torch.no_grad():
-            for images, labels in test_loader:
-                images, labels = images.to(device), labels.to(device)
-                outputs = model(images)
-                loss = criterion(outputs, labels)
+            for images, labels in self.test_loader:
+                images, labels = images.to(self.device), labels.to(self.device)
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
                 test_loss += loss.item()
                 _, preds = torch.max(outputs, 1)
                 all_preds.extend(preds.view(-1).cpu().numpy())
                 all_targets.extend(labels.view(-1).cpu().numpy())
 
-        test_loss /= len(test_loader)
+        test_loss /= len(self.test_loader)
         test_acc = np.mean(np.array(all_preds) == np.array(all_targets))
         test_f1 = f1_score(all_targets, all_preds, average="weighted")
 
@@ -325,7 +289,7 @@ class H9(H0):
 
         if show_cm:
             cm = confusion_matrix(all_targets, all_preds)
-            df_cm = pd.DataFrame(cm, index=range(num_classes), columns=range(num_classes))
+            df_cm = pd.DataFrame(cm, index=range(self.num_classes), columns=range(self.num_classes))
             plt.figure(figsize=(10, 7))
             sns.heatmap(df_cm, annot=True, fmt="d", cmap="Blues")
             plt.xlabel("Predicted")
@@ -339,14 +303,14 @@ class H9(H0):
             fpr = {}
             tpr = {}
             roc_auc = {}
-            for i in range(num_classes):
+            for i in range(self.num_classes):
                 fpr[i], tpr[i], _ = roc_curve(
                     np.array(all_targets) == i, np.array(all_preds) == i
                 )
                 roc_auc[i] = auc(fpr[i], tpr[i])
 
             plt.figure()
-            for i in range(num_classes):
+            for i in range(self.num_classes):
                 plt.plot(
                     fpr[i],
                     tpr[i],
@@ -360,3 +324,5 @@ class H9(H0):
             plt.title("Receiver Operating Characteristic (ROC)")
             plt.legend(loc="lower right")
             plt.show()
+        all_targets, all_preds = np.array(all_targets), np.array(all_preds)
+        return all_targets, all_preds
