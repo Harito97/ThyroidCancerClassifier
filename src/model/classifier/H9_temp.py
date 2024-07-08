@@ -112,8 +112,8 @@ class H9(H0):
                 return
             class_weights = compute_class_weight(
                 class_weight="balanced",
-                classes=np.unique(train_dataset.targets),
-                y=train_dataset.targets,
+                classes=np.unique(train_dataset.labels),
+                y=train_dataset.labels,
             )
 
         class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)

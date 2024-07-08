@@ -35,6 +35,7 @@ val_image, val_label = val_dataset[0]
 test_image, test_label = test_dataset[0]
 """
 
+
 class ThyroidCancerDataset(Dataset):
     """
     Dataset structure:
@@ -71,7 +72,12 @@ class ThyroidCancerDataset(Dataset):
     """
 
     def __init__(
-        self, img_dir='/drive/MyDrive/Dataset/ThyroidCancerData/processed/ver1', transform=None, classes={0: ["B2"], 1: ["B5"], 2: ["B6"]}, balance=False, mode='train'
+        self,
+        img_dir="/drive/MyDrive/Dataset/ThyroidCancerData/processed/ver1",
+        transform=None,
+        classes={0: ["B2"], 1: ["B5"], 2: ["B6"]},
+        balance=False,
+        mode="train",
     ):
         self.img_dir = img_dir
         self.transform = transform
@@ -104,9 +110,9 @@ class ThyroidCancerDataset(Dataset):
                         self.labels.append(label)
 
         # Only balance the dataset if it's the training set
-        if self.balance and self.mode == 'train':
+        if self.balance and self.mode == "train":
             self.balance_classes()
-        
+
     def balance_classes(self):
         # Find the maximum class size
         class_counts = np.bincount(self.labels)
@@ -117,23 +123,27 @@ class ThyroidCancerDataset(Dataset):
 
         # Oversample the minority classes
         for label in range(len(class_counts)):
-            img_paths_for_label = [path for path, lbl in zip(self.img_paths, self.labels) if lbl == label]
-            oversampled_paths = np.random.choice(img_paths_for_label, size=max_count, replace=True)
+            img_paths_for_label = [
+                path for path, lbl in zip(self.img_paths, self.labels) if lbl == label
+            ]
+            oversampled_paths = np.random.choice(
+                img_paths_for_label, size=max_count, replace=True
+            )
             balanced_img_paths.extend(oversampled_paths)
             balanced_labels.extend([label] * max_count)
 
         self.img_paths = balanced_img_paths
         self.labels = balanced_labels
-        
+
     def __len__(self):
         return len(self.img_paths)
 
     def __getitem__(self, idx):
         img_path = self.img_paths[idx]
         label = self.labels[idx]
-        image = Image.open(img_path).convert('RGB')
-        
+        image = Image.open(img_path).convert("RGB")
+
         if self.transform:
             image = self.transform(image)
-            
+
         return image, label
