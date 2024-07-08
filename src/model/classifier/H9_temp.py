@@ -93,11 +93,11 @@ class H9(H0):
 
         print('Creating dataloader...')
         thyroidCancerDataLoader = ThyroidCancerDataLoader()
-        self.train_loader = thyroidCancerDataLoader.get_data_loader(train_dataset, batch_size=32, num_workers=4)
+        self.train_loader = thyroidCancerDataLoader.get_data_loader(train_dataset, batch_size=32, num_workers=4, mode='train')
         print('Train loader size:', len(self.train_loader))
-        self.valid_loader = thyroidCancerDataLoader.get_data_loader(valid_dataset, batch_size=32, num_workers=4)
+        self.valid_loader = thyroidCancerDataLoader.get_data_loader(valid_dataset, batch_size=32, num_workers=4, mode='valid')
         print('Valid loader size:', len(self.valid_loader))
-        self.test_loader = thyroidCancerDataLoader.get_data_loader(test_dataset, batch_size=32, num_workers=4)
+        self.test_loader = thyroidCancerDataLoader.get_data_loader(test_dataset, batch_size=32, num_workers=4, mode='test')
         print('Test loader size:', len(self.test_loader))
 
     def __setup_hyperparameters(
