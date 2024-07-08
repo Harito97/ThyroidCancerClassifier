@@ -82,23 +82,23 @@ class H9(H0):
         x = self.resnet50_feature_extractor(x)
         return x
 
-    def load_data(self, data_dir, classes={0: ["B2"], 1: ["B5"], 2: ["B6"]}, balance=False):
-        print('Creating dataset...')
-        train_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=balance, mode='train')
-        print('Train dataset size:', train_dataset.__len__())
-        valid_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=False, mode='valid')
-        print('Valid dataset size:', valid_dataset.__len__())
-        test_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=False, mode='test')
-        print('Test dataset size:', test_dataset.__len__())
+    # def load_data(self, data_dir, classes={0: ["B2"], 1: ["B5"], 2: ["B6"]}, balance=False):
+    #     print('Creating dataset...')
+    #     train_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=balance, mode='train')
+    #     print('Train dataset size:', train_dataset.__len__())
+    #     valid_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=False, mode='valid')
+    #     print('Valid dataset size:', valid_dataset.__len__())
+    #     test_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=False, mode='test')
+    #     print('Test dataset size:', test_dataset.__len__())
 
-        print('Creating dataloader...')
-        thyroidCancerDataLoader = ThyroidCancerDataLoader()
-        self.train_loader = thyroidCancerDataLoader.get_data_loader(train_dataset, batch_size=32, num_workers=4, mode='train')
-        print('Train loader size:', len(self.train_loader))
-        self.valid_loader = thyroidCancerDataLoader.get_data_loader(valid_dataset, batch_size=32, num_workers=4, mode='valid')
-        print('Valid loader size:', len(self.valid_loader))
-        self.test_loader = thyroidCancerDataLoader.get_data_loader(test_dataset, batch_size=32, num_workers=4, mode='test')
-        print('Test loader size:', len(self.test_loader))
+    #     print('Creating dataloader...')
+    #     thyroidCancerDataLoader = ThyroidCancerDataLoader()
+    #     self.train_loader = thyroidCancerDataLoader.get_data_loader(train_dataset, batch_size=32, num_workers=4, mode='train')
+    #     print('Train loader size:', len(self.train_loader))
+    #     self.valid_loader = thyroidCancerDataLoader.get_data_loader(valid_dataset, batch_size=32, num_workers=4, mode='valid')
+    #     print('Valid loader size:', len(self.valid_loader))
+    #     self.test_loader = thyroidCancerDataLoader.get_data_loader(test_dataset, batch_size=32, num_workers=4, mode='test')
+    #     print('Test loader size:', len(self.test_loader))
 
     def __setup_hyperparameters(
         self,
@@ -188,7 +188,7 @@ class H9(H0):
             self.model.eval()
             print(f"\nStart validation at epoch {epoch + 1} ...")
             val_running_loss = 0.0
-            val_preds, val_targets = []
+            val_preds, val_targets = [], []
             with torch.no_grad():
                 for images, labels in self.valid_loader:
                     images, labels = images.to(self.device), labels.to(self.device)
