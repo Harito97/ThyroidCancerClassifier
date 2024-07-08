@@ -71,7 +71,7 @@ class ThyroidCancerDataset(Dataset):
     """
 
     def __init__(
-        self, img_dir, transform=None, classes={0: ["B2"], 1: ["B5"], 2: ["B6"]}, balance=False, mode='train'
+        self, img_dir='/drive/MyDrive/Dataset/ThyroidCancerData/processed/ver1', transform=None, classes={0: ["B2"], 1: ["B5"], 2: ["B6"]}, balance=False, mode='train'
     ):
         self.img_dir = img_dir
         self.transform = transform
@@ -80,16 +80,6 @@ class ThyroidCancerDataset(Dataset):
         self.labels = []
         self.balance = balance
         self.mode = mode
-
-        # Collect all image paths and their corresponding labels
-        for label, sub_dirs in classes.items():
-            for sub_dir in sub_dirs:
-                sub_dir_path = os.path.join(img_dir, mode, sub_dir)
-                if os.path.exists(sub_dir_path):
-                    for img_name in os.listdir(sub_dir_path):
-                        img_path = os.path.join(sub_dir_path, img_name)
-                        self.img_paths.append(img_path)
-                        self.labels.append(label)
 
         if transform is None:
             self.transform = transforms.Compose(
@@ -106,7 +96,7 @@ class ThyroidCancerDataset(Dataset):
         # Collect all image paths and their corresponding labels
         for label, sub_dirs in classes.items():
             for sub_dir in sub_dirs:
-                sub_dir_path = os.path.join(img_dir, sub_dir)
+                sub_dir_path = os.path.join(img_dir, mode, sub_dir)
                 if os.path.exists(sub_dir_path):
                     for img_name in os.listdir(sub_dir_path):
                         img_path = os.path.join(sub_dir_path, img_name)
