@@ -82,9 +82,9 @@ class H9(H0):
         x = self.resnet50_feature_extractor(x)
         return x
 
-    def load_data(self, data_dir, classes={0: ["B2"], 1: ["B5"], 2: ["B6"]}):
+    def load_data(self, data_dir, classes={0: ["B2"], 1: ["B5"], 2: ["B6"]}, balance=False):
         print('Creating dataset...')
-        train_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=True, mode='train')
+        train_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=balance, mode='train')
         print('Train dataset size:', train_dataset.__len__())
         valid_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=False, mode='valid')
         print('Valid dataset size:', valid_dataset.__len__())
