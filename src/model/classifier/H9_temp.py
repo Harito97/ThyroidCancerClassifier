@@ -163,7 +163,7 @@ class H9(H0):
         for epoch in range(num_epoch):
             self.model.train()
             running_loss = 0.0
-            train_preds, train_targets = []
+            train_preds, train_targets = [], []
             print(f"Epoch {epoch+1}/{num_epoch}:\nStart with batch size: ", end="")
             for images, labels in self.train_loader:
                 print(
