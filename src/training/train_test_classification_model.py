@@ -175,7 +175,7 @@ def __setup_hyperparameters(
     model,
     train_dataset=None,
     test_dataset=None,
-    class_weights=None,  # [4.6748, 0.8772, 0.6075],
+    class_weights=None,  # [4.6748, 0.8772, 0.6075], với 3 class thông thường, [7.01219512 0.53838951] với 2 class là 0 so với nhãn gộp 1+2
     device="cpu",
 ):
     # class_weights=[4.6748, 0.8772, 0.6075] là trọng số của mỗi class trong hàm loss
@@ -510,8 +510,8 @@ def test(
         data_version_dir,
         for_training=False,
         is_test_H8_model=is_test_H8_model,
-        labels_to_merge=None,  # {1: [2]},
-        labels_to_remove=None,  # [0],
+        labels_to_merge=labels_to_merge,  # {1: [2]},
+        labels_to_remove=labels_to_remove,  # [0],
     )
 
     # Prepare model
