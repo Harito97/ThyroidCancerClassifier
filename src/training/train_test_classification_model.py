@@ -463,14 +463,23 @@ def __save_roc_auc_plot(fpr, tpr, roc_auc, n_classes, filename):
     """
     plt.figure(figsize=(8, 6))
 
-    # Vẽ đường ROC cho từng lớp
-    for i in range(n_classes):
+    if n_classes == 2:
+        # Xử lý đặc biệt cho phân loại nhị phân
         plt.plot(
-            fpr[i],
-            tpr[i],
+            fpr["binary"],
+            tpr["binary"],
             lw=2,
-            label="ROC curve of class {0} (area = {1:0.2f})".format(i, roc_auc[i]),
+            label="ROC curve (area = {0:0.2f})".format(roc_auc["binary"]),
         )
+    else:
+        # Vẽ đường ROC cho từng lớp như trước
+        for i in range(n_classes):
+            plt.plot(
+                fpr[i],
+                tpr[i],
+                lw=2,
+                label="ROC curve of class {0} (area = {1:0.2f})".format(i, roc_auc[i]),
+            )
 
     # Vẽ đường chéo (ngẫu nhiên)
     plt.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")
@@ -562,9 +571,15 @@ def test(
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
-    for i in range(n_classes):
-        fpr[i], tpr[i], _ = roc_curve(test_targets_binarized[:, i], test_probs[:, i])
-        roc_auc[i] = auc(fpr[i], tpr[i])
+    if n_classes == 2:
+        # Trường hợp phân loại nhị phân
+        fpr["binary"], tpr["binary"], _ = roc_curve(test_targets_binarized, test_probs[:, 1])
+        roc_auc["binary"] = auc(fpr["binary"], tpr["binary"])
+    else:
+        # Trường hợp phân loại đa lớp
+        for i in range(n_classes):
+            fpr[i], tpr[i], _ = roc_curve(test_targets_binarized[:, i], test_probs[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
 
     # Save test_preds, test_probs, and test_targets to npz file
     model_name = os.path.basename(model_path).split(".")[0]
