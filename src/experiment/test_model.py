@@ -76,7 +76,7 @@ class Tool:
             cr = classification_report(y_true, y_score, output_dict=True)
             print("Classification Report:\n", cr)
             report_df = pd.DataFrame(cr).transpose()
-            # report_df.drop("support", axis=1, inplace=True)  # Bỏ cột support nếu không cần
+            report_df.drop("support", axis=1, inplace=True)  # Bỏ cột support nếu không cần
             report_df.plot(kind="bar", figsize=(10, 6))
             plt.title("Classification Report")
             plt.ylabel("Score")
@@ -108,7 +108,7 @@ class Tool:
             # Convert y_true and y_score to NumPy arrays if they are lists
             y_true = np.array(y_true)
             y_score = np.array(y_score)
-            
+
             # Binarize the output
             if n_classes != 2:
                 y_true = label_binarize(y_true, classes=[*range(n_classes)])
@@ -233,7 +233,7 @@ def test(
     test_f1 = f1_score(test_targets, test_preds, average="weighted")
 
     print(
-        f"Test Loss: {test_loss:.6f}, Test Acc: {test_acc:.6f}, Test F1: {test_f1:.6f}"
+        f"\nTest Loss: {test_loss:.6f}, Test Acc: {test_acc:.6f}, Test F1: {test_f1:.6f}"
     )
 
     # Log metrics to W&B
