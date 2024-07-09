@@ -69,9 +69,9 @@ def train_model(
         running_loss = 0.0
         train_preds, train_targets = [], []
 
-        first_img = train_loader[0][0]
+        # first_img = train_loader[0][0]
         print(
-            f"Epoch {epoch+1}/{num_epoch}:\nStart with batch size: [{first_img.size(0)}, {first_img.size(1)}, {first_img.size(2)}, {first_img.size(3)}]"
+            f"Epoch {epoch+1}/{num_epoch}" #:\nStart with batch size: [{first_img.size(0)}, {first_img.size(1)}, {first_img.size(2)}, {first_img.size(3)}]"
         )
         total_batches = len(train_loader)  # Get total number of batches
         for i, (images, labels) in enumerate(train_loader):
