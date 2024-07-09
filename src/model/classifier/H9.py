@@ -87,10 +87,3 @@ class H9(H0):
         print('Test loader size:', len(test_loader))
 
         return train_loader, valid_loader, test_loader
-            
-
-    def train_model(self, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs=10, device="cpu"):
-        ...
-
-    def test_model(self, test_loader, criterion, device="cpu"):
-        ...

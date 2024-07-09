@@ -19,11 +19,11 @@ transform = transforms.Compose([
 ])
 
 # Tạo dataset cho tập huấn luyện với cân bằng nhãn
-train_dataset = ThyroidCancerDataset(img_dir='path/to/data_dir/train', transform=transform, balance=True, mode='train')
+train_dataset = ThyroidCancerDataset(data_dir='path/to/data_dir/train', transform=transform, balance=True, mode='train')
 
 # Tạo dataset cho tập xác thực và kiểm thử mà không cần cân bằng nhãn
-val_dataset = ThyroidCancerDataset(img_dir='path/to/data_dir/val', transform=transform, mode='val')
-test_dataset = ThyroidCancerDataset(img_dir='path/to/data_dir/test', transform=transform, mode='test')
+val_dataset = ThyroidCancerDataset(data_dir='path/to/data_dir/val', transform=transform, mode='val')
+test_dataset = ThyroidCancerDataset(data_dir='path/to/data_dir/test', transform=transform, mode='test')
 
 # Lấy một mẫu từ dataset huấn luyện
 train_image, train_label = train_dataset[0]
@@ -54,7 +54,7 @@ class ThyroidCancerDataset(Dataset):
         |__ B6
 
     Args:
-        img_dir (str): Path to the data directory (data_dir).
+        data_dir (str): Path to the data directory (data_dir).
         transform (callable, optional): Optional transform to be applied on a sample.
         classes (dict): A dictionary where keys are class indices and values are lists of sub-directory names.
         balance (bool): If True, balance the dataset by oversampling (only for training set).
@@ -73,13 +73,13 @@ class ThyroidCancerDataset(Dataset):
 
     def __init__(
         self,
-        img_dir="/drive/MyDrive/Dataset/ThyroidCancerData/processed/ver1",
+        data_dir="/drive/MyDrive/Dataset/ThyroidCancerData/processed/ver1",
         transform=None,
         classes={0: ["B2"], 1: ["B5"], 2: ["B6"]},
         balance=False,
         mode="train",
     ):
-        self.img_dir = img_dir
+        self.data_dir = data_dir
         self.transform = transform
         self.classes = classes
         self.img_paths = []
@@ -100,29 +100,35 @@ class ThyroidCancerDataset(Dataset):
             )
 
         # Collect all image paths and their corresponding labels
-        for label, sub_dirs in classes.items():
+        # Eg: classes.items() = [(0, ['B2']), (1, ['B5', 'B6'])]
+        for label, sub_dirs in self.classes.items():
+            # Eg: label=1, sub_dirs=['B5', 'B6']
             for sub_dir in sub_dirs:
-                sub_dir_path = os.path.join(img_dir, mode, sub_dir)
+                # Eg: sub_dir='B5'
+                sub_dir_path = os.path.join(data_dir, mode, sub_dir)
                 if os.path.exists(sub_dir_path):
                     for img_name in os.listdir(sub_dir_path):
                         img_path = os.path.join(sub_dir_path, img_name)
                         self.img_paths.append(img_path)
                         self.labels.append(label)
+                else:
+                    print(f"Path {sub_dir_path} does not exist")
 
         # Only balance the dataset if it's the training set
         if self.balance and self.mode == "train":
+            print('Balancing the dataset')
             self.balance_classes()
 
     def balance_classes(self):
         # Find the maximum class size
         class_counts = np.bincount(self.labels)
-        max_count = class_counts.max()
+        max_count = class_counts.max() * len(class_counts)
 
         balanced_img_paths = []
         balanced_labels = []
 
         # Oversample the minority classes
-        for label in range(len(class_counts)):
+        for label in self.classes.keys():
             img_paths_for_label = [
                 path for path, lbl in zip(self.img_paths, self.labels) if lbl == label
             ]
@@ -132,6 +138,8 @@ class ThyroidCancerDataset(Dataset):
             balanced_img_paths.extend(oversampled_paths)
             balanced_labels.extend([label] * max_count)
 
+        print(f"Original dataset size: {len(self.img_paths)} | {len(self.labels)}")
+        print(f"Balanced dataset size: {len(balanced_img_paths)} | {len(balanced_labels)}")
         self.img_paths = balanced_img_paths
         self.labels = balanced_labels
 
