@@ -105,6 +105,10 @@ class Tool:
             roc_auc (dict): ROC AUC scores for each class.
         """
         try:
+            # Convert y_true and y_score to NumPy arrays if they are lists
+            y_true = np.array(y_true)
+            y_score = np.array(y_score)
+            
             # Binarize the output
             if n_classes != 2:
                 y_true = label_binarize(y_true, classes=[*range(n_classes)])
