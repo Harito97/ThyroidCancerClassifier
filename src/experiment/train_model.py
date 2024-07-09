@@ -2,11 +2,13 @@ import torch
 import numpy as np
 from sklearn.metrics import f1_score
 import json
+import wandb
+
 
 def train_model(
     train_loader=None,
     valid_loader=None,
-    model=None, # model structure (& weights)
+    model=None,  # model structure (& weights)
     device=None,
     criterion=None,
     optimizer=None,
@@ -43,6 +45,18 @@ def train_model(
         print("No criterion or optimizer is provided")
         return
 
+    # Initialize W&B
+    wandb.init(
+        project="ThyroidCancerClassifier",
+        entity="harito97",
+        config={
+            "num_epoch": num_epoch,
+            "patience": patience,
+            "learning_rate": optimizer.defaults["lr"],
+            "model_name": model_name,
+        },
+    )
+
     print("Moving model, criterion, optimizer to device ...")
     model = model.to(device)
     criterion = criterion.to(device)
@@ -74,10 +88,7 @@ def train_model(
         running_loss = 0.0
         train_preds, train_targets = [], []
 
-        # first_img = train_loader[0][0]
-        print(
-            f"Epoch {epoch+1}/{num_epoch}" #:\nStart with batch size: [{first_img.size(0)}, {first_img.size(1)}, {first_img.size(2)}, {first_img.size(3)}]"
-        )
+        print(f"Epoch {epoch+1}/{num_epoch}")
         total_batches = len(train_loader)  # Get total number of batches
         for i, (images, labels) in enumerate(train_loader):
             progress = (i + 1) / total_batches * 100  # Calculate progress
@@ -141,6 +152,19 @@ def train_model(
             f"Val   Loss: {val_loss:.6f}, Val   Acc: {val_acc:.6f}, Val   F1: {val_f1:.6f}"
         )
 
+        # Log metrics to W&B
+        wandb.log(
+            {
+                "train_loss": train_loss,
+                "train_acc": train_acc,
+                "train_f1": train_f1,
+                "val_loss": val_loss,
+                "val_acc": val_acc,
+                "val_f1": val_f1,
+                "epoch": epoch + 1,
+            }
+        )
+
         # After the training loop and any early stopping logic
         with open(history_file_path, "w") as history_file:
             json.dump(history, history_file)
@@ -168,3 +192,4 @@ def train_model(
 
     print(f"Training history saved to {history_file_path}")
     print("Training completed")
+    wandb.finish()

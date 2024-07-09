@@ -38,8 +38,8 @@ class H97_ResNet(nn.Module):
         x = self.fc3(x)
         return x
 
-# Khởi tạo mô hình
-model = H97_ResNet()
+# # Khởi tạo mô hình
+# model = H97_ResNet()
 
-# Trực quan hóa kiến trúc mô hình
-summary(model, (3, 224, 224))  # Input shape (3 channels, 224x224 image)
+# # Trực quan hóa kiến trúc mô hình
+# summary(model, (3, 224, 224))  # Input shape (3 channels, 224x224 image)

@@ -14,6 +14,7 @@ from sklearn.metrics import (
     auc,
 )
 from sklearn.preprocessing import label_binarize
+import wandb
 
 
 class Tool:
@@ -198,6 +199,9 @@ def test(
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()  # Set model to evaluate mode
 
+    # Initialize W&B
+    wandb.init(project="ThyroidCancerClassifier", entity="harito97")
+
     # Test loop
     test_preds, test_targets, test_probs = [], [], []
     total_loss = 0
@@ -228,16 +232,12 @@ def test(
         f"Test Loss: {test_loss:.6f}, Test Acc: {test_acc:.6f}, Test F1: {test_f1:.6f}"
     )
 
+    # Log metrics to W&B
+    wandb.log({"test_loss": test_loss, "test_acc": test_acc, "test_f1": test_f1})
+
     # Confusion Matrix and Classification Report
     unique_labels = np.unique(test_targets)
     target_names = [str(label) for label in unique_labels]
-    Tool.save_confusion_matrix(
-        y_true=test_targets,
-        y_score=test_preds,
-        target_names=target_names,
-        filename=f"{model_destination}/confusion_matrix_normalization.png",
-        normalize=True,
-    )
     cm = Tool.save_confusion_matrix(
         y_true=test_targets,
         y_score=test_preds,
@@ -247,14 +247,26 @@ def test(
     cr = Tool.save_classification_report(
         y_true=test_targets,
         y_score=test_preds,
-        target_names=target_names,
         filename=f"{model_destination}/classification_report.png",
     )
     fpr, tpr, roc_auc = Tool.save_roc_auc_plot(
         y_true=test_targets,
-        y_score=test_preds,
+        y_score=test_probs,
         n_classes=len(unique_labels),
         filename=f"{model_destination}/roc_auc_plot.png",
+    )
+
+    # Log additional metrics and plots to W&B
+    wandb.log(
+        {
+            "confusion_matrix": wandb.Image(
+                f"{model_destination}/confusion_matrix.png"
+            ),
+            "classification_report": wandb.Image(
+                f"{model_destination}/classification_report.png"
+            ),
+            "roc_auc_plot": wandb.Image(f"{model_destination}/roc_auc_plot.png"),
+        }
     )
 
     # Save test information to npz file
@@ -279,3 +291,4 @@ def test(
         tpr=tpr,
     )
     print("Test completed")
+    wandb.finish()
