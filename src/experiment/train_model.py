@@ -41,7 +41,6 @@ def train_model(
     print("Moving model, criterion, optimizer to device ...")
     model = model.to(device)
     criterion = criterion.to(device)
-    optimizer = optimizer.to(device)
 
     print("Taking model_destination, model_name and history_file_path ...")
     model_destination = (
