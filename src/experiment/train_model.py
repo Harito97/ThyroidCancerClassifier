@@ -48,7 +48,7 @@ def train_model(
     # Initialize W&B
     wandb.init(
         project="ThyroidCancer",
-        entity="harito-org",
+        entity="harito",
         config={
             "num_epoch": num_epoch,
             "patience": patience,

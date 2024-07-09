@@ -200,7 +200,7 @@ def test(
     model.eval()  # Set model to evaluate mode
 
     # Initialize W&B
-    wandb.init(project="ThyroidCancer", entity="harito-org")
+    wandb.init(project="ThyroidCancer", entity="harito")
 
     # Test loop
     test_preds, test_targets, test_probs = [], [], []
