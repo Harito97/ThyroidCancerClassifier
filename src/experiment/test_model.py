@@ -76,7 +76,9 @@ class Tool:
             cr = classification_report(y_true, y_score, output_dict=True)
             print("Classification Report:\n", cr)
             report_df = pd.DataFrame(cr).transpose()
-            report_df.drop("support", axis=1, inplace=True)  # Bỏ cột support nếu không cần
+            report_df.drop(
+                "support", axis=1, inplace=True
+            )  # Bỏ cột support nếu không cần
             report_df.plot(kind="bar", figsize=(10, 6))
             plt.title("Classification Report")
             plt.ylabel("Score")
@@ -109,17 +111,19 @@ class Tool:
             y_true = np.array(y_true)
             y_score = np.array(y_score)
 
-            # Binarize the output
-            if n_classes != 2:
-                y_true = label_binarize(y_true, classes=[*range(n_classes)])
-
             fpr = dict()
             tpr = dict()
             roc_auc = dict()
 
-            for i in range(n_classes):
-                fpr[i], tpr[i], _ = roc_curve(y_true[:, i], y_score[:, i])
-                roc_auc[i] = auc(fpr[i], tpr[i])
+            # Binarize the output if more than 2 classes
+            if n_classes > 2:
+                y_true = label_binarize(y_true, classes=[*range(n_classes)])
+                for i in range(n_classes):
+                    fpr[i], tpr[i], _ = roc_curve(y_true[:, i], y_score[:, i])
+                    roc_auc[i] = auc(fpr[i], tpr[i])
+            else:
+                fpr[1], tpr[1], _ = roc_curve(y_true, y_score[:, 1])
+                roc_auc[1] = auc(fpr[1], tpr[1])
 
             plt.figure(figsize=(8, 6))
 
