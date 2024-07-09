@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from torchvision import models
 from src.model.classifier.H0 import H0
 from src.data_preparation.ThyroidCancerDataset import ThyroidCancerDataset
-from src.data_preparation.ThyroidCancerDataLoader import ThyroidCancerDataLoader
 
 class ResNet50FeatureExtractor(nn.Module):
     def __init__(self):
@@ -68,22 +67,3 @@ class H9(H0):
         x = self.resnet50_feature_extractor(x)
         return x
 
-    def load_data(self, data_dir, classes={0: ["B2"], 1: ["B5"], 2: ["B6"]}):
-        print('Creating dataset...')
-        train_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=True, mode='train')
-        print('Train dataset size:', train_dataset.__len__())
-        valid_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=False, mode='valid')
-        print('Valid dataset size:', valid_dataset.__len__())
-        test_dataset = ThyroidCancerDataset(img_dir=data_dir, transform=None, classes=classes, balance=False, mode='test')
-        print('Test dataset size:', test_dataset.__len__())
-
-        print('Creating dataloader...')
-        thyroidCancerDataLoader = ThyroidCancerDataLoader()
-        train_loader = thyroidCancerDataLoader.get_data_loader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
-        print('Train loader size:', len(train_loader))
-        valid_loader = thyroidCancerDataLoader.get_data_loader(valid_dataset, batch_size=32, shuffle=False, num_workers=4)
-        print('Valid loader size:', len(valid_loader))
-        test_loader = thyroidCancerDataLoader.get_data_loader(test_dataset, batch_size=32, shuffle=False, num_workers=4)
-        print('Test loader size:', len(test_loader))
-
-        return train_loader, valid_loader, test_loader
