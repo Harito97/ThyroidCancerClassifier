@@ -10,3 +10,4 @@ models/final/
 # src/model/classifier/__pycache__/
 *.pyc
 temp_data_dir/
+src/model/classifier/vit_pretrained_weights.pth
