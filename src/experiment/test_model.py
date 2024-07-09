@@ -203,10 +203,6 @@ def test(
     total_loss = 0
 
     with torch.no_grad():
-        first_img = test_loader[0][0]
-        print(
-            f"Start with batch size: [{first_img.size(0)}, {first_img.size(1)}, {first_img.size(2)}, {first_img.size(3)}]"
-        )
         total_batches = len(test_loader)  # Get total number of batches
 
         for i, (images, labels) in enumerate(test_loader):

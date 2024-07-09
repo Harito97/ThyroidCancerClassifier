@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 from src.model.classifier.H0 import H0
-from src.data_preparation.ThyroidCancerDataset import ThyroidCancerDataset
 
 class ResNet50FeatureExtractor(nn.Module):
     def __init__(self):
