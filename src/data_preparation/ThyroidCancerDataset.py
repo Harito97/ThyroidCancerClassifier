@@ -116,7 +116,7 @@ class ThyroidCancerDataset(Dataset):
 
         # Only balance the dataset if it's the training set
         if self.balance and (self.mode == "train" or self.mode == "valid"):
-            print('Balancing the dataset')
+            print("Balancing the dataset")
             self.balance_classes()
 
     def balance_classes(self):
@@ -139,7 +139,9 @@ class ThyroidCancerDataset(Dataset):
             balanced_labels.extend([label] * max_count)
 
         print(f"Original dataset size: {len(self.img_paths)} | {len(self.labels)}")
-        print(f"Balanced dataset size: {len(balanced_img_paths)} | {len(balanced_labels)}")
+        print(
+            f"Balanced dataset size: {len(balanced_img_paths)} | {len(balanced_labels)}"
+        )
         self.img_paths = balanced_img_paths
         self.labels = balanced_labels
 
