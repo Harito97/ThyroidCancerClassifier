@@ -22,7 +22,7 @@ transform = transforms.Compose([
 train_dataset = ThyroidCancerDataset(data_dir='path/to/data_dir/train', transform=transform, balance=True, mode='train')
 
 # Tạo dataset cho tập xác thực và kiểm thử mà không cần cân bằng nhãn
-val_dataset = ThyroidCancerDataset(data_dir='path/to/data_dir/val', transform=transform, mode='val')
+val_dataset = ThyroidCancerDataset(data_dir='path/to/data_dir/val', transform=transform, mode='valid')
 test_dataset = ThyroidCancerDataset(data_dir='path/to/data_dir/test', transform=transform, mode='test')
 
 # Lấy một mẫu từ dataset huấn luyện
@@ -44,7 +44,7 @@ class ThyroidCancerDataset(Dataset):
         |__ B2
         |__ B5
         |__ B6
-    |__ val
+    |__ valid
         |__ B2
         |__ B5
         |__ B6
@@ -58,7 +58,7 @@ class ThyroidCancerDataset(Dataset):
         transform (callable, optional): Optional transform to be applied on a sample.
         classes (dict): A dictionary where keys are class indices and values are lists of sub-directory names.
         balance (bool): If True, balance the dataset by oversampling (only for training set).
-        mode (str): One of 'train', 'val', 'test' indicating the dataset split.
+        mode (str): One of 'train', 'valid', 'test' indicating the dataset split.
 
     Các chức năng có ở ThyroidCancerDataset:
     |__ Đọc dữ liệu từ folder data_dir và load vào các class:
@@ -115,7 +115,7 @@ class ThyroidCancerDataset(Dataset):
                     print(f"Path {sub_dir_path} does not exist")
 
         # Only balance the dataset if it's the training set
-        if self.balance and self.mode == "train":
+        if self.balance and (self.mode == "train" or self.mode == "valid"):
             print('Balancing the dataset')
             self.balance_classes()
 

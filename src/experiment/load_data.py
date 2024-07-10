@@ -27,7 +27,7 @@ def load_data(data_dir:str, batch_size:int=32, num_workers:int=4, classes:dict={
         ]
     )
 
-    valid_dataset = ThyroidCancerDataset(data_dir=data_dir, transform=transform, classes=classes, balance=False, mode='valid')
+    valid_dataset = ThyroidCancerDataset(data_dir=data_dir, transform=transform, classes=classes, balance=True, mode='valid')
     print('Valid dataset size:', len(valid_dataset))
 
     test_dataset = ThyroidCancerDataset(data_dir=data_dir, transform=transform, classes=classes, balance=False, mode='test')
