@@ -16,9 +16,10 @@ class H97_ResNet(nn.Module):
 
         # Kích thước đầu vào cho lớp fully connected đầu tiên dựa trên output của ResNet50
         # ResNet50 thường trả về tensor [batch_size, 2048, 1, 1] sau lớp pooling cuối cùng
-        self.fc1 = nn.Linear(2048, 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, num_classes)
+        self.fc1 = nn.Linear(2048, 9)
+        self.fc2 = nn.Linear(9, 7)
+        self.fc3 = nn.Linear(7, 3)
+        self.fc4 = nn.Linear(3, num_classes)
         self.dropout = nn.Dropout(0.1)
 
     def forward(self, x):
@@ -36,6 +37,10 @@ class H97_ResNet(nn.Module):
         x = self.dropout(x)
         
         x = self.fc3(x)
+        x = nn.ReLU()(x)
+        x = self.dropout(x)
+
+        x = self.fc4(x)
         return x
 
 # # Khởi tạo mô hình
