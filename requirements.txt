@@ -20,6 +20,5 @@ tensorboard==2.16.2
 tensorboard-data-server==0.7.2
 timm==1.0.7
 torch==2.3.1
-torchaudio==2.3.1+cpu
 torchsummary==1.5.1
 torchvision==0.18.1
