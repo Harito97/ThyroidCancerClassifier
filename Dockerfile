@@ -3,19 +3,24 @@ FROM python:3.10
 
 WORKDIR .
 
-# Tạo thư mục làm việc và clone dự án, sau đó cài đặt các gói cần thiết
-RUN mkdir app && \
-    git clone https://github.com/Harito97/ThyroidCancerClassifier.git app/ThyroidCancerClassifier
-
-
-RUN pip install --upgrade pip
-RUN pip install -r app/ThyroidCancerClassifier/requirements.txt
-
 # Mở cổng 5000 cho ứng dụng Flask
 EXPOSE 5000
 
+# Chạy một lệnh chờ để container không tự động kết thúc
+CMD tail -f /dev/null
+
+# Tạo thư mục làm việc và clone dự án, sau đó cài đặt các gói cần thiết
+# RUN mkdir app && \
+#     git clone https://github.com/Harito97/ThyroidCancerClassifier.git app/ThyroidCancerClassifier
+
+# COPY /path/to/model.onnx /destination/in/container
+
+# RUN pip install --upgrade pip
+# RUN pip install -r app/ThyroidCancerClassifier/requirements.txt
+
+
 # Chạy ứng dụng Flask khi khởi động container
-CMD ["python", "app/ThyroidCancerClassifier/src/gui/app.py"]
+# CMD ["python", "app/ThyroidCancerClassifier/src/gui/app.py"]
 
 # docker build -t thyroidcancerclassifier .
 # để xây dựng image docker
