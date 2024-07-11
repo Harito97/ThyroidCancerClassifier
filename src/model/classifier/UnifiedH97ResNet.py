@@ -112,8 +112,8 @@ class UnifiedH97ResNet(Module):
         super(UnifiedH97ResNet, self).__init__()
 
         # Module ResNet
-        resnet50 = resnet50(pretrained=True)
-        self.feature_extractor = Sequential(*list(resnet50.children())[:-1])
+        resnet50_pretrained = resnet50(pretrained=True)
+        self.feature_extractor = Sequential(*list(resnet50_pretrained.children())[:-1])
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
 
