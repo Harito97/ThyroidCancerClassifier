@@ -1,11 +1,25 @@
 # Sử dụng hình ảnh cơ sở Python 3.10
 FROM python:3.10
 
+# Đặt thư mục làm việc
 WORKDIR .
+
+# Sao chép file requirements.txt đầu tiên để tận dụng Docker cache
+COPY src/gui/requirements.txt src/gui/
+# Sao chép các file còn lại
+COPY src/gui/{app.py,classes_B2_B5B6.json} src/gui/
+
+# Đối với file model, nếu nó không thay đổi thường xuyên, giữ nó ở cuối để tận dụng cache
+# COPY /mnt/Data/Projects/best_h97_resnet_B2_B5B6_dataver1_model.onnx /mnt/Data/Projects/best_h97_resnet_B2_B5B6_dataver1_model.onnx
+
+# Cài đặt các gói phụ thuộc
+# RUN pip install --upgrade pip && pip install --no-cache-dir -r src/gui/requirements.txt
 
 # Mở cổng 5000 cho ứng dụng Flask
 EXPOSE 5000
 
+# Chạy một lệnh chờ để container không tự động kết thúc
+# CMD ["python", "src/gui/app.py"]
 # Chạy một lệnh chờ để container không tự động kết thúc
 CMD tail -f /dev/null
 
