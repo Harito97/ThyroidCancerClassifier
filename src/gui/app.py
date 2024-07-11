@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 
 app = Flask(__name__)
 
-imagenet_class_index = json.load(open("classes_B2_B5B6.json"))
+imagenet_class_index = json.load(open("app/ThyroidCancerClassifier/src/gui/classes_B2_B5B6.json"))
 
 # Đường dẫn đến mô hình ONNX
 model_destination_path = (
