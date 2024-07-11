@@ -1,5 +1,5 @@
-from torch import cat, load
-from torch.nn import Linear, Module, ReLU, Sequential, Dropout, Softmax, flatten
+from torch import cat, load, flatten
+from torch.nn import Linear, Module, ReLU, Sequential, Dropout, Softmax
 from torchvision.models import resnet50
 
 # from src.model.classifier.H0 import H0
@@ -132,7 +132,7 @@ class UnifiedH97ResNet(Module):
     def forward(self, x):
         # Trích xuất đặc trưng qua module ResNet
         x = self.feature_extractor(x)
-        x = flatten(x, 1) # Chuyển đổi tensor từ [batch_size, 2048, 1, 1] sang [batch_size, 2048]
+        x = torch.flatten(x, 1) # Chuyển đổi tensor từ [batch_size, 2048, 1, 1] sang [batch_size, 2048]
 
         # Đưa qua mạng dense của UnifiedModel
         x = self.unified_model(x)
