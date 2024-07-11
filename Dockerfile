@@ -2,7 +2,7 @@
 FROM python:3.10
 
 # Đặt thư mục làm việc
-WORKDIR .
+# WORKDIR .
 
 # Sao chép file requirements.txt đầu tiên để tận dụng Docker cache
 COPY src/gui/requirements.txt src/gui/
