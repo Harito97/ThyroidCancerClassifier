@@ -11,4 +11,4 @@ models/final/
 *.pyc
 temp_data_dir/
 src/model/classifier/vit_pretrained_weights.pth
-src/model/classifier/unified_model_weights.pt
+# src/model/classifier/unified_model_weights.pt

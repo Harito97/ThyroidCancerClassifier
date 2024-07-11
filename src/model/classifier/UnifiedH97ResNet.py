@@ -1,6 +1,6 @@
-from torch import cat
-import torch.nn as nn
-import torchvision.models as models
+from torch import cat, load
+from torch.nn import Linear, Module, ReLU, Sequential, Dropout, Softmax
+from torchvision.models import resnet50
 
 # from src.model.classifier.H0 import H0
 """
@@ -12,33 +12,36 @@ B1. Load trọng số của 4 model đã huấn luyện trước vào 4 lớp fu
 
 """
 
-class UnifiedModel(nn.Module):
+class UnifiedModel(Module):
     def __init__(self, weights_path=None):
         super(UnifiedModel, self).__init__()
         # Định nghĩa các lớp fully connected cho mỗi model
-        self.fc1_B2_B5B6 = nn.Linear(2048, 9)
-        self.fc2_B2_B5B6 = nn.Linear(9, 7)
-        self.fc3_B2_B5B6 = nn.Linear(7, 3)
-        self.fc4_B2_B5B6 = nn.Linear(3, 2)
+        self.fc1_B2_B5B6 = Linear(2048, 9)
+        self.fc2_B2_B5B6 = Linear(9, 7)
+        self.fc3_B2_B5B6 = Linear(7, 3)
+        self.fc4_B2_B5B6 = Linear(3, 2)
 
-        self.fc1_B5_B2B6 = nn.Linear(2048, 9)
-        self.fc2_B5_B2B6 = nn.Linear(9, 7)
-        self.fc3_B5_B2B6 = nn.Linear(7, 3)
-        self.fc4_B5_B2B6 = nn.Linear(3, 2)
+        self.fc1_B5_B2B6 = Linear(2048, 9)
+        self.fc2_B5_B2B6 = Linear(9, 7)
+        self.fc3_B5_B2B6 = Linear(7, 3)
+        self.fc4_B5_B2B6 = Linear(3, 2)
 
-        self.fc1_B6_B2B5 = nn.Linear(2048, 9)
-        self.fc2_B6_B2B5 = nn.Linear(9, 7)
-        self.fc3_B6_B2B5 = nn.Linear(7, 3)
-        self.fc4_B6_B2B5 = nn.Linear(3, 2)
+        self.fc1_B6_B2B5 = Linear(2048, 9)
+        self.fc2_B6_B2B5 = Linear(9, 7)
+        self.fc3_B6_B2B5 = Linear(7, 3)
+        self.fc4_B6_B2B5 = Linear(3, 2)
 
-        self.fc1_B2_B5_B6 = nn.Linear(2048, 9)
-        self.fc2_B2_B5_B6 = nn.Linear(9, 7)
-        self.fc3_B2_B5_B6 = nn.Linear(7, 3)
-        self.fc4_B2_B5_B6 = nn.Linear(3, 3)
+        self.fc1_B2_B5_B6 = Linear(2048, 9)
+        self.fc2_B2_B5_B6 = Linear(9, 7)
+        self.fc3_B2_B5_B6 = Linear(7, 3)
+        self.fc4_B2_B5_B6 = Linear(3, 3)
+
+        # Dropout layer
+        self.dropout = Dropout(0.1)
 
         # Tự động tải trọng số nếu đường dẫn được cung cấp
         if weights_path is not None:
-            self.load_state_dict(torch.load(weights_path))
+            self.load_state_dict(load(weights_path))
 
     def forward(self, x):
         # Đưa qua mạng dense của 4 model con
@@ -53,64 +56,64 @@ class UnifiedModel(nn.Module):
 
     def __forward_B2_B5B6(self, x):
         x_B2_B5B6 = self.fc1_B2_B5B6(x)
-        x_B2_B5B6 = nn.ReLU()(x_B2_B5B6)
+        x_B2_B5B6 = ReLU()(x_B2_B5B6)
         x_B2_B5B6 = self.dropout(x_B2_B5B6)
         x_B2_B5B6 = self.fc2_B2_B5B6(x_B2_B5B6)
-        x_B2_B5B6 = nn.ReLU()(x_B2_B5B6)
+        x_B2_B5B6 = ReLU()(x_B2_B5B6)
         x_B2_B5B6 = self.dropout(x_B2_B5B6)
         x_B2_B5B6 = self.fc3_B2_B5B6(x_B2_B5B6)
-        x_B2_B5B6 = nn.ReLU()(x_B2_B5B6)
+        x_B2_B5B6 = ReLU()(x_B2_B5B6)
         x_B2_B5B6 = self.dropout(x_B2_B5B6)
         x_B2_B5B6 = self.fc4_B2_B5B6(x_B2_B5B6)
         return x_B2_B5B6
 
     def __forward_B5_B2B6(self, x):
         x_B5_B2B6 = self.fc1_B5_B2B6(x)
-        x_B5_B2B6 = nn.ReLU()(x_B5_B2B6)
+        x_B5_B2B6 = ReLU()(x_B5_B2B6)
         x_B5_B2B6 = self.dropout(x_B5_B2B6)
         x_B5_B2B6 = self.fc2_B5_B2B6(x_B5_B2B6)
-        x_B5_B2B6 = nn.ReLU()(x_B5_B2B6)
+        x_B5_B2B6 = ReLU()(x_B5_B2B6)
         x_B5_B2B6 = self.dropout(x_B5_B2B6)
         x_B5_B2B6 = self.fc3_B5_B2B6(x_B5_B2B6)
-        x_B5_B2B6 = nn.ReLU()(x_B5_B2B6)
+        x_B5_B2B6 = ReLU()(x_B5_B2B6)
         x_B5_B2B6 = self.dropout(x_B5_B2B6)
         x_B5_B2B6 = self.fc4_B5_B2B6(x_B5_B2B6)
         return x_B5_B2B6
 
     def __forward_B6_B2B5(self, x):
         x_B6_B2B5 = self.fc1_B6_B2B5(x)
-        x_B6_B2B5 = nn.ReLU()(x_B6_B2B5)
+        x_B6_B2B5 = ReLU()(x_B6_B2B5)
         x_B6_B2B5 = self.dropout(x_B6_B2B5)
         x_B6_B2B5 = self.fc2_B6_B2B5(x_B6_B2B5)
-        x_B6_B2B5 = nn.ReLU()(x_B6_B2B5)
+        x_B6_B2B5 = ReLU()(x_B6_B2B5)
         x_B6_B2B5 = self.dropout(x_B6_B2B5)
         x_B6_B2B5 = self.fc3_B6_B2B5(x_B6_B2B5)
-        x_B6_B2B5 = nn.ReLU()(x_B6_B2B5)
+        x_B6_B2B5 = ReLU()(x_B6_B2B5)
         x_B6_B2B5 = self.dropout(x_B6_B2B5)
         x_B6_B2B5 = self.fc4_B6_B2B5(x_B6_B2B5)
         return x_B6_B2B5
 
     def __forward_B2_B5_B6(self, x):
         x_B2_B5_B6 = self.fc1_B2_B5_B6(x)
-        x_B2_B5_B6 = nn.ReLU()(x_B2_B5_B6)
+        x_B2_B5_B6 = ReLU()(x_B2_B5_B6)
         x_B2_B5_B6 = self.dropout(x_B2_B5_B6)
         x_B2_B5_B6 = self.fc2_B2_B5_B6(x_B2_B5_B6)
-        x_B2_B5_B6 = nn.ReLU()(x_B2_B5_B6)
+        x_B2_B5_B6 = ReLU()(x_B2_B5_B6)
         x_B2_B5_B6 = self.dropout(x_B2_B5_B6)
         x_B2_B5_B6 = self.fc3_B2_B5_B6(x_B2_B5_B6)
-        x_B2_B5_B6 = nn.ReLU()(x_B2_B5_B6)
+        x_B2_B5_B6 = ReLU()(x_B2_B5_B6)
         x_B2_B5_B6 = self.dropout(x_B2_B5_B6)
         x_B2_B5_B6 = self.fc4_B2_B5_B6(x_B2_B5_B6)
         return x_B2_B5_B6
 
 
-class UnifiedH97ResNet(nn.Module):
+class UnifiedH97ResNet(Module):
     def __init__(self, unified_model_weights_path=None):
         super(UnifiedH97ResNet, self).__init__()
 
         # Module ResNet
-        resnet50 = models.resnet50(pretrained=True)
-        self.feature_extractor = nn.Sequential(*list(resnet50.children())[:-1])
+        resnet50 = resnet50(pretrained=True)
+        self.feature_extractor = Sequential(*list(resnet50.children())[:-1])
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
 
@@ -120,19 +123,26 @@ class UnifiedH97ResNet(nn.Module):
             param.requires_grad = False
 
         # Dropout layer
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = Dropout(0.1)
 
         # Lớp cuối cùng để phân loại 3 nhãn B2, B5, B6 từ 9 đặc trưng
-        self.final_fc = nn.Linear(9, 3)
+        self.near_last_fc = Linear(9, 9)
+        self.final_fc = Linear(9, 3)
 
     def forward(self, x):
-        # Trích xuất đặc trưng
+        # Trích xuất đặc trưng qua module ResNet
         x = self.feature_extractor(x)
-        # Chuyển đổi tensor từ [batch_size, 2048, 1, 1] sang [batch_size, 2048]
-        x = torch.flatten(x, 1)
+        x = torch.flatten(x, 1) # Chuyển đổi tensor từ [batch_size, 2048, 1, 1] sang [batch_size, 2048]
+
         # Đưa qua mạng dense của UnifiedModel
         x = self.unified_model(x)
+        x = ReLU()(x)
         x = self.dropout(x)
-        # Cho vào lớp cuối cùng để phân loại 3 nhãn B2, B5, B6
+
+        # Cho vào những lớp cuối cùng để phân loại 3 nhãn B2, B5, B6
+        x = self.near_last_fc(x)
+        x = ReLU()(x)
+        x = self.dropout(x)
         x = self.final_fc(x)
+        x = Softmax(dim=1)(x)
         return x
