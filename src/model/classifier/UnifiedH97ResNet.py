@@ -132,7 +132,7 @@ class UnifiedH97ResNet(Module):
     def forward(self, x):
         # Trích xuất đặc trưng qua module ResNet
         x = self.feature_extractor(x)
-        x = torch.flatten(x, 1) # Chuyển đổi tensor từ [batch_size, 2048, 1, 1] sang [batch_size, 2048]
+        x = flatten(x, 1) # Chuyển đổi tensor từ [batch_size, 2048, 1, 1] sang [batch_size, 2048]
 
         # Đưa qua mạng dense của UnifiedModel
         x = self.unified_model(x)
