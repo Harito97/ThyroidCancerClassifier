@@ -4,15 +4,16 @@ import torchvision.models as models
 from torchsummary import summary
 
 class H97_ResNet(nn.Module):
-    def __init__(self, num_classes: int = 3):
+    def __init__(self, num_classes: int = 3, retrainResNet: bool = False):
         super(H97_ResNet, self).__init__()        
         # Tải mô hình ResNet50 đã được huấn luyện trước
         resnet50 = models.resnet50(pretrained=True)
         # Loại bỏ lớp fully connected cuối cùng
         self.feature_extractor = nn.Sequential(*list(resnet50.children())[:-1])
-        # Đóng băng các tham số trong feature extractor để không cập nhật trong quá trình huấn luyện
-        for param in self.feature_extractor.parameters():
-            param.requires_grad = False
+        if not retrainResNet:
+            # Đóng băng các tham số trong feature extractor để không cập nhật trong quá trình huấn luyện
+            for param in self.feature_extractor.parameters():
+                param.requires_grad = False
 
         # Kích thước đầu vào cho lớp fully connected đầu tiên dựa trên output của ResNet50
         # ResNet50 thường trả về tensor [batch_size, 2048, 1, 1] sau lớp pooling cuối cùng

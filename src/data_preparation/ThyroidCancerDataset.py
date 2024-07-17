@@ -122,8 +122,11 @@ class ThyroidCancerDataset(Dataset):
     def balance_classes(self):
         # Find the maximum class size
         class_counts = np.bincount(self.labels)
-        max_count = class_counts.max() * 100 # len(class_counts)
-        
+        if self.mode == "train":
+            max_count = class_counts.max() * 100
+        elif self.mode == "valid":
+            max_count = class_counts.max()
+
         balanced_img_paths = []
         balanced_labels = []
 
