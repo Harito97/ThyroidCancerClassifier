@@ -89,7 +89,7 @@ def train_model(
         running_loss = 0.0
         train_preds, train_targets = [], []
 
-        print(f"Epoch {epoch+1}/{num_epoch}")
+        # print(f"Epoch {epoch+1}/{num_epoch}")
         total_batches = len(train_loader)  # Get total number of batches
         for i, (images, labels) in enumerate(train_loader):
             progress = (i + 1) / total_batches * 100  # Calculate progress
@@ -114,7 +114,7 @@ def train_model(
             train_targets.extend(labels.view(-1).cpu().numpy())
 
         # Calculate metrics after a epoch in training set
-        print("\nCalculating metrics in training set ...")
+        # print("\nCalculating metrics in training set ...")
         train_loss = running_loss / len(train_loader)
         train_acc = np.mean(np.array(train_preds) == np.array(train_targets))
         train_f1 = f1_score(train_targets, train_preds, average="weighted")
@@ -122,7 +122,7 @@ def train_model(
         # Validation loop
         # Set model in evaluation mode
         model.eval()
-        print(f"\nStart validation at epoch {epoch + 1} ...")
+        # print(f"\nStart validation at epoch {epoch + 1} ...")
         val_running_loss = 0.0
         val_preds, val_targets = [], []
         with torch.no_grad():
@@ -148,10 +148,10 @@ def train_model(
         history["val_acc"].append(val_acc)
         history["val_f1"].append(val_f1)
 
-        print(
-            f"Train Loss: {train_loss:.6f}, Train Acc: {train_acc:.6f}, Train F1: {train_f1:.6f}\n"
-            f"Val   Loss: {val_loss:.6f}, Val   Acc: {val_acc:.6f}, Val   F1: {val_f1:.6f}"
-        )
+        # print(
+        #     f"Train Loss: {train_loss:.6f}, Train Acc: {train_acc:.6f}, Train F1: {train_f1:.6f}\n"
+        #     f"Val   Loss: {val_loss:.6f}, Val   Acc: {val_acc:.6f}, Val   F1: {val_f1:.6f}"
+        # )
 
         # Log metrics to W&B
         wandb.log(
@@ -169,7 +169,7 @@ def train_model(
         # After the training loop and any early stopping logic
         with open(history_file_path, "w") as history_file:
             json.dump(history, history_file)
-        print("Saved last history at epoch", epoch + 1)
+        # print("Saved last history at epoch", epoch + 1)
 
         # Checkpoint
         # if val_loss < best_loss:
@@ -198,13 +198,13 @@ def train_model(
             torch.save(
                 model.state_dict(), f"{model_destination}/last_{model_name}_model.pt"
             )
-            print("Saved last model at epoch", epoch + 1)
+            # print("Saved last model at epoch", epoch + 1)
 
         # Early stopping
         if patience_counter >= patience:
-            print("Early stopping")
+            # print("Early stopping")
             break
 
-    print(f"Training history saved to {history_file_path}")
+    # print(f"Training history saved to {history_file_path}")
     print("Training completed")
     wandb.finish()

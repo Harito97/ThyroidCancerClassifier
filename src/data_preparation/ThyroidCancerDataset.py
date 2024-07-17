@@ -78,6 +78,7 @@ class ThyroidCancerDataset(Dataset):
         classes={0: ["B2"], 1: ["B5"], 2: ["B6"]},
         balance=False,
         mode="train",
+        num_x=100,
     ):
         self.data_dir = data_dir
         self.transform = transform
@@ -117,13 +118,13 @@ class ThyroidCancerDataset(Dataset):
         # Only balance the dataset if it's the training set
         if self.balance and (self.mode == "train"): # or self.mode == "valid"):
             print("Balancing the dataset")
-            self.balance_classes()
+            self.balance_classes(num_x)
 
-    def balance_classes(self):
+    def balance_classes(self, num_x=100):
         # Find the maximum class size
         class_counts = np.bincount(self.labels)
         # if self.mode == "train":
-        max_count = class_counts.max() * 100
+        max_count = class_counts.max() * num_x
         # elif self.mode == "valid":
         #     max_count = class_counts.max()
 
