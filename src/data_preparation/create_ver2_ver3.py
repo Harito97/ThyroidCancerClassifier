@@ -51,7 +51,7 @@ def remove_noise(bounding_boxes, image_np):
         x1, y1, x2, y2 = map(int, box)
         areas[index] = (x2 - x1) * (y2 - y1)
         bounding_boxes_list.append((x1, y1, x2, y2))
-        print(x1, y1, x2, y2)
+        # print(x1, y1, x2, y2)
         new_image[y1:y2, x1:x2] = image_np[y1:y2, x1:x2]
 
     if len(areas) > 0:
@@ -134,12 +134,10 @@ def crop_5_largest_areas(image, areas, bounding_boxes, augmentation_transforms):
     return images
 
 
-if __name__ == "__main__":
-    model_path = "/Data/Projects/ThyroidCancerClassifier/src/model/cell_detect/runs/detect/train2/weights/best.pt"
+def main(model_path, dataver1_dir="/dataver1", dataver2_dir="/dataver2", dataver3_dir="/dataver3"):
+    # model_path = "/Data/Projects/ThyroidCancerClassifier/src/model/cell_detect/runs/detect/train2/weights/best.pt"
     model = YOLO(model_path)
-    dataver1_dir = "/dataver1"
-    dataver2_dir = "/dataver2"
-    dataver3_dir = "/dataver3"
+    print('Loaded model')
     # Define a set of augmentation transforms
     augmentation_transforms = transforms.Compose(
         [
@@ -150,28 +148,45 @@ if __name__ == "__main__":
             transforms.RandomVerticalFlip(),
         ]
     )
+    print('Loaded augmentation transforms')
 
     for subset_dir in ["train", "valid", "test"]:
-        for index, image_path in enumerate(
-            glob.glob(os.path.join(dataver1_dir, subset_dir, "*.jpg"))
-        ):
-            image_np = cv2.imread(image_path)
-            image_pil = Image.fromarray(cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB))
-            bounding_boxes = identify_bounding_boxes(model, image_path)
-            print(f"{image_path} have {len(bounding_boxes)} cell importance clusters")
+        for label in ['.B2', 'B5', 'B6']:
+            for index, image_path in enumerate(
+                glob.glob(os.path.join(dataver1_dir, subset_dir, label, "*.jpg"))
+            ):
+                image_np = cv2.imread(image_path, cv2.IMREAD_COLOR)
+                image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+                image_pil = Image.fromarray(image_np)
+                bounding_boxes = identify_bounding_boxes(model, image_path)
+                print(f"{image_path} have {len(bounding_boxes)} cell importance clusters")
 
-            image_dataver2, areas, bounding_boxes = remove_noise(
-                bounding_boxes, image_np
-            )
-            save_dataver2_dir = os.path.join(dataver2_dir, subset_dir, f"{index}.jpg")
-            image_dataver2.save(save_dataver2_dir)
-
-            images_dataver3 = crop_5_largest_areas(
-                image_pil, areas, bounding_boxes, augmentation_transforms
-            )
-            for i, img in enumerate(images_dataver3):
-                # Resize if needed: img = img.resize((224, 224))
-                save_dataver3_dir = os.path.join(
-                    dataver3_dir, subset_dir, f"{index}_{i}.jpg"
+                image_dataver2, areas, bounding_boxes = remove_noise(
+                    bounding_boxes, image_np
                 )
-                img.save(save_dataver3_dir)
+                save_dataver2_dir = os.path.join(dataver2_dir, subset_dir, label, f"{index}.jpg")
+                image_dataver2.save(save_dataver2_dir)
+                print('Saved the image to dataver2')
+
+                images_dataver3 = crop_5_largest_areas(
+                    image_pil, areas, bounding_boxes, augmentation_transforms
+                )
+                for i, img in enumerate(images_dataver3):
+                    # Resize if needed: img = img.resize((224, 224))
+                    save_dataver3_dir = os.path.join(
+                        dataver3_dir, subset_dir, label, f"{index}_{i}.jpg"
+                    )
+                    img.save(save_dataver3_dir)
+                print('Saved 5 images cropped to dataver3')
+
+
+
+# !mkdir -p /kaggle/working/dataver2/train/.B2 /kaggle/working/dataver2/train/B5 /kaggle/working/dataver2/train/B6
+# !mkdir -p /kaggle/working/dataver2/valid/.B2 /kaggle/working/dataver2/valid/B5 /kaggle/working/dataver2/valid/B6
+# !mkdir -p /kaggle/working/dataver2/test/.B2 /kaggle/working/dataver2/test/B5 /kaggle/working/dataver2/test/B6
+
+# !mkdir -p /kaggle/working/dataver3/train/.B2 /kaggle/working/dataver3/train/B5 /kaggle/working/dataver3/train/B6
+# !mkdir -p /kaggle/working/dataver3/valid/.B2 /kaggle/working/dataver3/valid/B5 /kaggle/working/dataver3/valid/B6
+# !mkdir -p /kaggle/working/dataver3/test/.B2 /kaggle/working/dataver3/test/B5 /kaggle/working/dataver3/test/B6
+
+# main(model_path='/kaggle/input/cell-cluster-detection/pytorch/train300epoches/1/best.pt', dataver1_dir='/kaggle/input/thyroidcancer-ver1/ver1', dataver2_dir='/kaggle/working/dataver2', dataver3_dir='/kaggle/working/dataver3')
