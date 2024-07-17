@@ -16,21 +16,6 @@ from PIL import Image, ImageEnhance
 import random
 
 
-def detect_cell_cluster(image_path, model):
-    """
-    Detect cell clusters in an image using a YOLO model.
-
-    Args:
-        image_path (str): Path to the input image.
-        model (YOLO): Loaded YOLO model.
-
-    Returns:
-        list: List of bounding boxes in [x1, y1, x2, y2] format.
-    """
-    results = model(image_path)
-    return results[0].boxes.xyxy.tolist()
-
-
 def identify_bounding_boxes(model, image_path):
     """
     Identify bounding boxes of cell clusters in an image.
