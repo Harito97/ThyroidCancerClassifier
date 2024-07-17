@@ -115,17 +115,17 @@ class ThyroidCancerDataset(Dataset):
                     print(f"Path {sub_dir_path} does not exist")
 
         # Only balance the dataset if it's the training set
-        if self.balance and (self.mode == "train" or self.mode == "valid"):
+        if self.balance and (self.mode == "train"): # or self.mode == "valid"):
             print("Balancing the dataset")
             self.balance_classes()
 
     def balance_classes(self):
         # Find the maximum class size
         class_counts = np.bincount(self.labels)
-        if self.mode == "train":
-            max_count = class_counts.max() * 100
-        elif self.mode == "valid":
-            max_count = class_counts.max()
+        # if self.mode == "train":
+        max_count = class_counts.max() * 100
+        # elif self.mode == "valid":
+        #     max_count = class_counts.max()
 
         balanced_img_paths = []
         balanced_labels = []

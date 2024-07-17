@@ -79,7 +79,8 @@ def train_model(
     }
 
     print("Training classification model...")
-    best_loss = float("inf")
+    # best_loss = float("inf")
+    best_f1 = -1
     patience_counter = 0
 
     for epoch in range(num_epoch):
@@ -171,8 +172,22 @@ def train_model(
         print("Saved last history at epoch", epoch + 1)
 
         # Checkpoint
-        if val_loss < best_loss:
-            best_loss = val_loss
+        # if val_loss < best_loss:
+        #     best_loss = val_loss
+        #     torch.save(
+        #         model.state_dict(), f"{model_destination}/best_{model_name}_model.pt"
+        #     )
+        #     print("Saved **best model** at epoch", epoch + 1)
+        #     patience_counter = 0
+        # else:
+        #     patience_counter += 1
+        #     torch.save(
+        #         model.state_dict(), f"{model_destination}/last_{model_name}_model.pt"
+        #     )
+        #     print("Saved last model at epoch", epoch + 1)
+
+        if val_f1 > best_f1:
+            best_f1 = val_f1
             torch.save(
                 model.state_dict(), f"{model_destination}/best_{model_name}_model.pt"
             )

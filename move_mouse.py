@@ -3,7 +3,7 @@ import time
 import signal
 import sys
 import keyboard
-
+# pip install pyautogui keyboard
 # Hàm để xử lý khi nhận tín hiệu ngắt (Ctrl+C)
 def signal_handler(sig, frame):
     print("Chương trình bị ngắt bởi người dùng.")
