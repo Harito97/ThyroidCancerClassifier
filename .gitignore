@@ -2,6 +2,8 @@
 # data/processed/
 # data/raw/
 *.jpg
+*.pt
+*.pth
 
 models/checkpoints/
 # models/logs/
@@ -14,3 +16,5 @@ src/model/classifier/vit_pretrained_weights.pth
 # src/model/classifier/unified_model_weights.pt
 src/model/cell_detect/Train_Cell_Cluster_Detect.ipynb
 src/model/cell_detect/*
+
+deploy_final_result/

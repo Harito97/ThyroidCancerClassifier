@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
-from torchsummary import summary
+# from torchsummary import summary
 
 class H97_ResNet(nn.Module):
     def __init__(self, num_classes: int = 3, retrainResNet: bool = False):
