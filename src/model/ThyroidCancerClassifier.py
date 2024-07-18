@@ -29,10 +29,13 @@ class ThyroidCancerClassifier:
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomVerticalFlip(),
             ]
-        )  # to augment the image
+        )  # to augment the image in step 1
         self.transform2 = transforms.Compose(
-            [transforms.ToTensor()]
-        )  # to transform the image to a tensor
+            [
+                transforms.Resize((224, 224)),  # Resize to a common size
+                transforms.ToTensor(),
+            ]
+        )  # to transform the image to a tensor in step 2
 
     def predict(self, image_path):
         best_images = self.step1(image_path)
@@ -105,7 +108,6 @@ class ThyroidCancerClassifier:
 
         # Convert the predictions to a list and return
         return preds.cpu().numpy().tolist()  # Eg: [0, 2, 1, 1, 1]
-
 
     def step3(self, results):
         """
