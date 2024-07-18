@@ -71,12 +71,12 @@ class ThyroidCancerClassifier:
         results = []
         for image in images:
             # Transform the image to a tensor
-            image = self.transform2(image)
-            image = image.unsqueeze(0)
             with torch.no_grad():
+                image = self.transform2(image)
+                image = image.unsqueeze(0)
                 image = image.to(self.device)
-            outputs = self.BTTC_model(image)
-            _, preds = torch.max(outputs, 1)
+                outputs = self.BTTC_model(image)
+                _, preds = torch.max(outputs, 1)
             results.extend(preds.view(-1).cpu().numpy())
         return results  # Eg: [0, 2, 1, 1, 1]
 
