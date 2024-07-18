@@ -64,21 +64,48 @@ class ThyroidCancerClassifier:
             image_pil, areas, bounding_boxes_list, self.transform
         )
 
+    # def step2(self, images):
+    #     """
+    #     Predict the images using the BTTC model
+    #     # len(images) = 5 (always)
+    #     """
+    #     results = []
+    #     for image in images:
+    #         # Transform the image to a tensor
+    #         with torch.no_grad():
+    #             image = self.transform2(image)
+    #             image = image.unsqueeze(0)
+    #             image = image.to(self.device)
+    #             outputs = self.BTTC_model(image)
+    #             _, preds = torch.max(outputs, 1)
+    #         results.extend(preds.view(-1).cpu().numpy())
+    #     return results  # Eg: [0, 2, 1, 1, 1]
+
     def step2(self, images):
         """
         Predict the images using the BTTC model
+        # len(images) = 5 (always)
         """
-        results = []
-        for image in images:
-            # Transform the image to a tensor
-            with torch.no_grad():
-                image = self.transform2(image)
-                image = image.unsqueeze(0)
-                image = image.to(self.device)
-                outputs = self.BTTC_model(image)
-                _, preds = torch.max(outputs, 1)
-            results.extend(preds.view(-1).cpu().numpy())
-        return results  # Eg: [0, 2, 1, 1, 1]
+        # Transform the images to a tensor
+        with torch.no_grad():
+            # Apply the transformation and add batch dimension
+            images = [self.transform2(image).unsqueeze(0) for image in images]
+
+            # Stack images to form a batch
+            images = torch.cat(images, dim=0)
+
+            # Move the batch to the appropriate device
+            images = images.to(self.device)
+
+            # Perform the inference
+            outputs = self.BTTC_model(images)
+
+            # Get the predicted classes
+            _, preds = torch.max(outputs, 1)
+
+        # Convert the predictions to a list and return
+        return preds.cpu().numpy().tolist()  # Eg: [0, 2, 1, 1, 1]
+
 
     def step3(self, results):
         """
