@@ -20,6 +20,7 @@ class ThyroidCancerClassifier:
             torch.load(BTTC_model_path, map_location=self.device)
         )
         self.BTTC_model.eval()
+        self.BTTC_model.to(self.device)
         self.transform = transforms.Compose(
             [
                 # transforms.Resize((256, 256)),

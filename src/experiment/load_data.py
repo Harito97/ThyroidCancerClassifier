@@ -2,7 +2,7 @@ from src.data_preparation.ThyroidCancerDataset import ThyroidCancerDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
 
-def load_data(data_dir:str, batch_size:int=32, num_workers:int=4, classes:dict={0: ["B2"], 1: ["B5"], 2: ["B6"]}, num_x=100):
+def load_data(data_dir:str, batch_size:int=32, num_workers:int=4, classes:dict={0: ["B2"], 1: ["B5"], 2: ["B6"]}, balance_train_set=True, num_x=100):
     """
     Function to load and preprocess data for a machine learning model.
 
@@ -16,7 +16,7 @@ def load_data(data_dir:str, batch_size:int=32, num_workers:int=4, classes:dict={
     tuple: A tuple containing the training, validation, and test data loaders.
     """
     print('Creating dataset...')
-    train_dataset = ThyroidCancerDataset(data_dir=data_dir, transform=None, classes=classes, balance=True, mode='train', num_x=num_x)
+    train_dataset = ThyroidCancerDataset(data_dir=data_dir, transform=None, classes=classes, balance=balance_train_set, mode='train', num_x=num_x)
     print('Train dataset size:', len(train_dataset))
 
     transform = transforms.Compose(
