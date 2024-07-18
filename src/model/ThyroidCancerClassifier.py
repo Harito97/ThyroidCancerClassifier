@@ -29,15 +29,16 @@ class ThyroidCancerClassifier:
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomVerticalFlip(),
             ]
-        )
-        self.transform2 = transforms.Compose([transforms.ToTensor()])
-        torch.no_grad()
+        )  # to augment the image
+        self.transform2 = transforms.Compose(
+            [transforms.ToTensor()]
+        )  # to transform the image to a tensor
 
     def predict(self, image_path):
         best_images = self.step1(image_path)
         results = self.step2(best_images)
         label = self.step3(results)
-        return label
+        return label, results
 
     def step1(self, image_path):
         """
@@ -52,7 +53,7 @@ class ThyroidCancerClassifier:
         ICCD_bounding_boxes = self.__identify_bounding_boxes(
             self.ICCD_model, image_path
         )
-        print(type(ICCD_bounding_boxes))
+        # print(type(ICCD_bounding_boxes))
         # Remove noise
         _, areas, bounding_boxes_list = self.__remove_noise(
             ICCD_bounding_boxes, image_np
@@ -65,22 +66,24 @@ class ThyroidCancerClassifier:
 
     def step2(self, images):
         """
-        Predict the images
+        Predict the images using the BTTC model
         """
         results = []
         for image in images:
             # Transform the image to a tensor
             image = self.transform2(image)
             image = image.unsqueeze(0)
-            image = image.to(self.device)
+            with torch.no_grad():
+                image = image.to(self.device)
             outputs = self.BTTC_model(image)
             _, preds = torch.max(outputs, 1)
             results.extend(preds.view(-1).cpu().numpy())
-        return results
+        return results  # Eg: [0, 2, 1, 1, 1]
 
     def step3(self, results):
         """
-        Return the most common label
+        Return the most common label in the results list
+        Eg: [0, 2, 1, 1, 1] -> 1
         """
         return max(set(results), key=results.count)
 

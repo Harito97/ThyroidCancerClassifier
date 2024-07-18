@@ -21,8 +21,8 @@ def load_data(data_dir:str, batch_size:int=32, num_workers:int=4, classes:dict={
 
     transform = transforms.Compose(
         [
-            transforms.Resize((224, 224)),
-            # transforms.CenterCrop(224),
+            transforms.Resize((256, 256)),
+            transforms.CenterCrop(224),
             transforms.ToTensor(),
         ]
     )
