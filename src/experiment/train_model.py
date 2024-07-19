@@ -284,47 +284,45 @@ class ViTTraining:
         print("Moving model, criterion, optimizer to device ...")
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
-
-        history_file_path = os.path.join(
-            self.model_destination, f"{self.model_name}_history.json"
-        )
-
+    
+        history_file_path = os.path.join(self.model_destination, f"{self.model_name}_history.json")
+    
         print("Training classification model...")
         for epoch in range(self.num_epochs):
             # Gradual unfreezing logic
             n_layers = (epoch + 1) * self.n_layers_to_unfreeze
             self._set_layer_requires_grad(n_layers)
-
+    
             # Update optimizer for current layer setup
             optimizers = self.model.get_optimizers(n_layers)
             optimizer = torch.optim.AdamW(optimizers, lr=self.model.initial_lr)
-
+    
             # Training phase
             self.model.train()
             running_loss = 0.0
             train_preds, train_targets = [], []
-
-            total_batches = len(self.train_loader)
+    
+            total_batches = len(self.train_loader)  # Get total number of batches
             for i, (images, labels) in enumerate(self.train_loader):
-                progress = (i + 1) / total_batches * 100
+                progress = (i + 1) / total_batches * 100  # Calculate progress
                 print(f"\rProgress: {progress:.2f}%", end="")
-
+    
                 images, labels = images.to(self.device), labels.to(self.device)
                 optimizer.zero_grad()
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
-
+    
                 running_loss += loss.item()
                 _, preds = torch.max(outputs, 1)
                 train_preds.extend(preds.view(-1).cpu().numpy())
                 train_targets.extend(labels.view(-1).cpu().numpy())
-
+    
             train_loss = running_loss / len(self.train_loader)
             train_acc = np.mean(np.array(train_preds) == np.array(train_targets))
             train_f1 = f1_score(train_targets, train_preds, average="weighted")
-
+    
             # Validation phase
             self.model.eval()
             val_running_loss = 0.0
@@ -338,11 +336,11 @@ class ViTTraining:
                     _, preds = torch.max(outputs, 1)
                     val_preds.extend(preds.view(-1).cpu().numpy())
                     val_targets.extend(labels.view(-1).cpu().numpy())
-
+    
             val_loss = val_running_loss / len(self.valid_loader)
             val_acc = np.mean(np.array(val_preds) == np.array(val_targets))
             val_f1 = f1_score(val_targets, val_preds, average="weighted")
-
+    
             # Update history
             self.history["train_loss"].append(train_loss)
             self.history["train_acc"].append(train_acc)
@@ -350,49 +348,38 @@ class ViTTraining:
             self.history["val_loss"].append(val_loss)
             self.history["val_acc"].append(val_acc)
             self.history["val_f1"].append(val_f1)
-
+    
             # Log metrics to W&B
-            wandb.log(
-                {
-                    "train_loss": train_loss,
-                    "train_acc": train_acc,
-                    "train_f1": train_f1,
-                    "val_loss": val_loss,
-                    "val_acc": val_acc,
-                    "val_f1": val_f1,
-                    "epoch": epoch + 1,
-                }
-            )
-
+            wandb.log({
+                "train_loss": train_loss,
+                "train_acc": train_acc,
+                "train_f1": train_f1,
+                "val_loss": val_loss,
+                "val_acc": val_acc,
+                "val_f1": val_f1,
+                "epoch": epoch + 1,
+            })
+    
             # Save history
             with open(history_file_path, "w") as history_file:
                 json.dump(self.history, history_file)
-
+    
             # Checkpoint
             if val_f1 > self.best_f1:
                 self.best_f1 = val_f1
-                torch.save(
-                    self.model.state_dict(),
-                    os.path.join(
-                        self.model_destination, f"best_{self.model_name}_model.pt"
-                    ),
-                )
+                torch.save(self.model.state_dict(), os.path.join(self.model_destination, f"best_{self.model_name}_model.pt"))
                 print("Saved **best model** at epoch", epoch + 1)
                 self.patience_counter = 0
             else:
                 self.patience_counter += 1
-                torch.save(
-                    self.model.state_dict(),
-                    os.path.join(
-                        self.model_destination, f"last_{self.model_name}_model.pt"
-                    ),
-                )
-
+                torch.save(self.model.state_dict(), os.path.join(self.model_destination, f"last_{self.model_name}_model.pt"))
+    
+            # Early stopping
             if self.patience_counter >= self.patience:
-                print("Early stopping")
                 break
-
+            
         print("Training completed")
         wandb.finish()
 
-        
+
+

@@ -117,15 +117,31 @@ class ViTTinyModel(nn.Module):
                 param.requires_grad = False
 
     def get_optimizers(self, layer_idx):
-        """Create different optimizers for different layers."""
+        """
+        Create different optimizers for different layers.
+        """
         optimizers = []
         for name, param in self.model.named_parameters():
             if param.requires_grad:
-                if int(name.split('.')[1]) >= layer_idx:
-                    optimizers.append({'params': param, 'lr': self.lr_high})
+                # Split the parameter name based on '.' and check its prefix to determine the layer
+                if 'encoder' in name:
+                    # Extract the layer index from the name
+                    try:
+                        # Example: name might be 'vit.encoder.layer.0.attention.self.query.weight'
+                        layer_number = int(name.split('encoder.layer.')[1].split('.')[0])
+                    except (IndexError, ValueError):
+                        layer_number = None
+                    
+                    if layer_number is not None:
+                        if layer_number >= layer_idx:
+                            optimizers.append({'params': param, 'lr': self.lr_high})
+                        else:
+                            optimizers.append({'params': param, 'lr': self.lr_low})
                 else:
+                    # Handle other parameters if needed
                     optimizers.append({'params': param, 'lr': self.lr_low})
         return optimizers
+
 
     def forward(self, images):
         return self.model(images).logits
