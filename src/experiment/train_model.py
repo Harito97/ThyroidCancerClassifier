@@ -394,3 +394,5 @@ class ViTTraining:
 
         print("Training completed")
         wandb.finish()
+
+        

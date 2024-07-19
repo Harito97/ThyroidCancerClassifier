@@ -98,8 +98,8 @@ from transformers import ViTForImageClassification, ViTFeatureExtractor
 class ViTTinyModel(nn.Module):
     def __init__(self, num_classes):
         super(ViTTinyModel, self).__init__()
-        self.model = ViTForImageClassification.from_pretrained('google/vit-tiny-patch16-224-in21k', num_labels=num_classes)
-        self.feature_extractor = ViTFeatureExtractor.from_pretrained('google/vit-tiny-patch16-224-in21k')
+        self.model = ViTForImageClassification.from_pretrained('google/vit-base-patch16-224-in21k', num_labels=num_classes)
+        self.feature_extractor = ViTFeatureExtractor.from_pretrained('google/vit-base-patch16-224-in21k')
         self.num_layers = 12
         self.initial_lr = 1e-4
         self.lr_high = 10 * self.initial_lr
