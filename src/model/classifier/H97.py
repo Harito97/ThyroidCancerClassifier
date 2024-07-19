@@ -90,3 +90,110 @@ class H97_EfficientNet(nn.Module):
 
         x = self.fc4(x)
         return x
+
+import torch
+import torch.nn as nn
+from transformers import ViTForImageClassification, ViTFeatureExtractor
+
+class ViTTinyModel(nn.Module):
+    def __init__(self, num_classes):
+        super(ViTTinyModel, self).__init__()
+        self.model = ViTForImageClassification.from_pretrained('google/vit-tiny-patch16-224-in21k', num_labels=num_classes)
+        self.feature_extractor = ViTFeatureExtractor.from_pretrained('google/vit-tiny-patch16-224-in21k')
+        self.num_layers = 12
+        self.initial_lr = 1e-4
+        self.lr_high = 10 * self.initial_lr
+        self.lr_low = self.initial_lr
+
+    def set_parameter_requires_grad(self, start_layer, end_layer):
+        """Set requires_grad for layers based on their index."""
+        layer_names = list(self.model.vit.named_parameters())
+        for i, (name, param) in enumerate(layer_names):
+            if i < start_layer:
+                param.requires_grad = False
+            elif start_layer <= i < end_layer:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+
+    def get_optimizers(self, layer_idx):
+        """Create different optimizers for different layers."""
+        optimizers = []
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                if int(name.split('.')[1]) >= layer_idx:
+                    optimizers.append({'params': param, 'lr': self.lr_high})
+                else:
+                    optimizers.append({'params': param, 'lr': self.lr_low})
+        return optimizers
+
+    def forward(self, images):
+        return self.model(images).logits
+
+
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import transforms
+
+class ViT(nn.Module):
+    def __init__(self, 
+                 img_size=224, 
+                 patch_size=16, 
+                 in_channels=3, 
+                 num_classes=10, 
+                 dim=256, 
+                 depth=12, 
+                 heads=8, 
+                 mlp_dim=512, 
+                 dropout=0.1):
+        super(ViT, self).__init__()
+        
+        self.patch_size = patch_size
+        self.num_patches = (img_size // patch_size) ** 2
+        
+        # Patch embedding
+        self.patch_embedding = nn.Sequential(
+            nn.Conv2d(in_channels, dim, kernel_size=patch_size, stride=patch_size),
+            nn.Flatten(2),
+            nn.Linear(dim, dim)
+        )
+        
+        # Positional encoding
+        self.positional_encoding = nn.Parameter(torch.randn(1, self.num_patches + 1, dim))
+        
+        # Transformer blocks
+        self.transformer = nn.Sequential(
+            *[nn.TransformerEncoderLayer(
+                d_model=dim,
+                nhead=heads,
+                dim_feedforward=mlp_dim,
+                dropout=dropout
+            ) for _ in range(depth)]
+        )
+        
+        # Classification head
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.fc = nn.Linear(dim, num_classes)
+        
+    def forward(self, x):
+        # Extract patches and apply embedding
+        patches = self.patch_embedding(x)
+        patches = patches.permute(0, 2, 1).contiguous()
+        
+        # Add positional encoding
+        batch_size = patches.size(0)
+        cls_tokens = self.cls_token.expand(batch_size, -1, -1)
+        x = torch.cat((cls_tokens, patches), dim=1)
+        x += self.positional_encoding
+        
+        # Apply transformer
+        x = self.transformer(x)
+        
+        # Classification head
+        cls_output = x[:, 0]
+        output = self.fc(cls_output)
+        
+        return output
+
