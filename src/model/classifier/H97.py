@@ -54,7 +54,8 @@ class H97_EfficientNet(nn.Module):
     def __init__(self, num_classes: int = 3, retrainEfficientNet: bool = False):
         super(H97_EfficientNet, self).__init__()
         # Load a pretrained EfficientNet model
-        efficientnet = models.efficientnet_b0(pretrained=True)
+        # efficientnet = models.efficientnet_b0(pretrained=True)
+        efficientnet = models.efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
         # Remove the last fully connected layer
         self.feature_extractor = nn.Sequential(*list(efficientnet.children())[:-1])
         if not retrainEfficientNet:
