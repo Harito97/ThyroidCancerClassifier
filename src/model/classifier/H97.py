@@ -79,11 +79,18 @@ class H97_ResNet(nn.Module):
 # summary(model, (3, 224, 224))  # Input shape (3 channels, 224x224 image)
 
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision.models as models
+import numpy as np
+import matplotlib.pyplot as plt
+
+
 class H97_EfficientNet(nn.Module):
     def __init__(self, num_classes: int = 3, retrainEfficientNet: bool = False):
         super(H97_EfficientNet, self).__init__()
         # Load a pretrained EfficientNet model
-        # efficientnet = models.efficientnet_b0(pretrained=True)
         efficientnet = models.efficientnet_b0(
             weights=models.EfficientNet_B0_Weights.DEFAULT
         )
@@ -102,9 +109,13 @@ class H97_EfficientNet(nn.Module):
         self.fc4 = nn.Linear(3, num_classes)
         self.dropout = nn.Dropout(0.1)
 
+        # Hook for CAM
+        self.features = None
+
     def forward(self, x):
         # Feature extraction
         x = self.feature_extractor(x)
+        self.features = x
         # Flatten the tensor from [batch_size, 1280, 1, 1] to [batch_size, 1280] to match the fully connected layer
         x = torch.flatten(x, 1)
         # Pass through the dense network
@@ -122,6 +133,75 @@ class H97_EfficientNet(nn.Module):
 
         x = self.fc4(x)
         return x
+
+    def get_cam(self, input_tensor, target_class=None):
+        """
+        Get the Class Activation Map for a given input and target class.
+
+        Parameters:
+        input_tensor (torch.Tensor): The input image tensor.
+        target_class (int): The target class for which to visualize the CAM.
+
+        Returns:
+        cam (np.ndarray): The Class Activation Map.
+        """
+        # Forward pass to get the logits
+        output = self.forward(input_tensor)
+        if target_class is None:
+            target_class = output.argmax(dim=1).item()
+
+        # Get the weight of the last layer
+        weights = self.fc4.weight[target_class].detach().cpu().numpy()
+
+        # Get the features from the last conv layer
+        features = self.features.squeeze().detach().cpu().numpy()
+
+        # Calculate the CAM
+        cam = np.zeros(features.shape[1:], dtype=np.float32)
+        for i, w in enumerate(weights):
+            cam += w * features[i] #, :, :]
+
+        # Normalize the CAM
+        cam = np.maximum(cam, 0)
+        cam = cam / cam.max()
+
+        return cam
+
+    def plot_cam(self, input_image, cam, alpha=0.5):
+        """
+        Plot the Class Activation Map on top of the input image.
+
+        Parameters:
+        input_image (np.ndarray): The input image.
+        cam (np.ndarray): The Class Activation Map.
+        alpha (float): The transparency level for the CAM overlay.
+        """
+        plt.imshow(input_image)
+        plt.imshow(cam, cmap="jet", alpha=alpha)
+        plt.colorbar()
+        plt.show()
+
+# EG to use 
+# # Tạo đối tượng model
+# model = H97_EfficientNet(num_classes=3, retrainEfficientNet=False)
+
+# # Load một batch hình ảnh
+# images, labels = next(iter(train_loader))
+# images = images.to(device)
+# labels = labels.to(device)
+
+# # Tính toán CAM cho hình ảnh đầu tiên trong batch
+# input_image = images[0].unsqueeze(0)
+# input_image_np = input_image.squeeze().permute(1, 2, 0).cpu().numpy()
+# target_class = labels[0].item()
+
+# # Lấy CAM
+# model.eval()
+# with torch.no_grad():
+#     cam = model.get_cam(input_image, target_class)
+
+# # Hiển thị CAM trên hình ảnh đầu vào
+# model.plot_cam(input_image_np, cam)
 
 
 # import torch
