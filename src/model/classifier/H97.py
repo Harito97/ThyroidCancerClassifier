@@ -6,19 +6,26 @@ import torch.nn.functional as F
 # from torchsummary import summary
 
 
-class H97_Softmax(nn.Module):
+class H97_ANN(nn.Module):
     def __init__(self):
         # Use this for data version 3
-        super(H97_Softmax, self).__init__()
-        self.fc = nn.Linear(150528, 3)  # (3 * 224 * 224, 3)
+        super(H97_ANN, self).__init__()
+        self.fc1 = nn.Linear(150528, 9)  # (3 * 224 * 224, 9)
+        self.fc2 = nn.Linear(9, 7)
+        self.fc3 = nn.Linear(7, 3)
         self.dropout1 = nn.Dropout(0.5)
 
     def forward(self, x):
         # Flatten the input tensor
         x = x.view(-1, 150528)  # (-1, 3 * 224 * 224)
         x = self.dropout1(x)
-        # x = F.relu(x) # no meaning when all positive
-        x = self.fc(x)
+        x = self.fc1(x)
+        x = self.dropout1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = self.dropout1(x)
+        x = F.relu(x)
+        x = self.fc3(x)
         x = F.softmax(x, dim=1)  # Softmax applied along the class dimension
         return x
 
