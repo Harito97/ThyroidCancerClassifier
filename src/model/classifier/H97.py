@@ -17,7 +17,7 @@ class H97_Softmax(nn.Module):
         # Flatten the input tensor
         x = x.view(-1, 150528)  # (-1, 3 * 224 * 224)
         x = self.dropout1(x)
-        x = F.relu(x)
+        # x = F.relu(x) # no meaning when all positive
         x = self.fc(x)
         x = F.softmax(x, dim=1)  # Softmax applied along the class dimension
         return x
